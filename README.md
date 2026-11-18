@@ -5,7 +5,7 @@
 <h1 align="center">YouTube Reimagined</h1>
 
 <p align="center">
-  Customize YouTube’s video grids, theater mode, and colors with plugins and themes.
+  Browser extension to customize YouTube website with plugins and themes, with community-first support and huge library.
 </p>
 
 <p align="center">
