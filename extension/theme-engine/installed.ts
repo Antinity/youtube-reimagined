@@ -1,5 +1,6 @@
 import { browser } from 'wxt/browser';
-import { discoverThemes } from './index';
+import { defaultThemeId, discoverThemes } from './index';
+import { themeApplicationErrorKey } from './diagnostics';
 import type { Theme } from './schema';
 
 export const installedThemesKey = 'theme:installed';
@@ -22,7 +23,7 @@ export class DuplicateThemeError extends Error {
 
 export async function installTheme(theme: Theme, replaceRevision?: string): Promise<void> {
   const id = theme.metadata.id;
-  if (discoverThemes().some(({ metadata }) => metadata.id === id)) {
+  if (id === defaultThemeId || discoverThemes().some(({ metadata }) => metadata.id === id)) {
     throw new Error(`"${id}" belongs to a bundled theme. Choose a different ID.`);
   }
   await navigator.locks.request(themeLock, async () => {
@@ -32,6 +33,7 @@ export async function installTheme(theme: Theme, replaceRevision?: string): Prom
     if (!current && replaceRevision) throw new Error(`"${id}" was removed. Select the file again to install it.`);
     await browser.storage.local.set({
       [installedThemesKey]: [...saved.filter(({ metadata }) => metadata.id !== id), { ...theme, revision: crypto.randomUUID() }],
+      ...(current ? { [themeApplicationErrorKey]: null } : {}),
     });
   });
 }

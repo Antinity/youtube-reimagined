@@ -5,9 +5,9 @@ import { installedThemes, installedThemesKey, themeLock, type InstalledTheme } f
 import { optionEntries, type PluginOptionValue } from '../plugin-engine/schema';
 import type { Theme } from './schema';
 import { isValidThemeValue, themeSettingsKey } from './settings';
+import { themeApplicationErrorKey } from './diagnostics';
 
 export const selectedThemeKey = 'theme:selected';
-export const themeApplicationErrorKey = 'theme:application-error';
 
 export function selectedThemeId(values: Readonly<Record<string, unknown>>): string | null {
   const value = values[selectedThemeKey];
@@ -15,8 +15,32 @@ export function selectedThemeId(values: Readonly<Record<string, unknown>>): stri
   return defaultThemeId;
 }
 
-export function selectTheme(id: string | null): Promise<void> {
-  return browser.storage.local.set({ [selectedThemeKey]: id, [themeApplicationErrorKey]: null });
+export async function selectTheme(id: string | null): Promise<void> {
+  await navigator.locks.request(themeLock, async () => {
+    if (id && !discoverThemes().some(({ metadata }) => metadata.id === id)) {
+      const values = await browser.storage.local.get(installedThemesKey);
+      if (!installedThemes(values).some(({ metadata }) => metadata.id === id)) throw new Error('This theme is no longer installed.');
+    }
+    await browser.storage.local.set({ [selectedThemeKey]: id, [themeApplicationErrorKey]: null });
+  });
+}
+
+export async function removeTheme(theme: InstalledTheme): Promise<void> {
+  await navigator.locks.request(themeLock, async () => {
+    const values = await browser.storage.local.get([installedThemesKey, selectedThemeKey, themeSettingsKey]);
+    const id = theme.metadata.id;
+    const saved = installedThemes(values);
+    const current = saved.find(({ metadata }) => metadata.id === id);
+    if (!current) return;
+    if (current.revision !== theme.revision) throw new Error('This theme was replaced. Try again with the current version.');
+    const settings = { ...(values[themeSettingsKey] as Record<string, unknown> | undefined) };
+    delete settings[id];
+    await browser.storage.local.set({
+      [installedThemesKey]: saved.filter(({ metadata }) => metadata.id !== id),
+      [themeSettingsKey]: settings,
+      ...(selectedThemeId(values) === id ? { [selectedThemeKey]: null, [themeApplicationErrorKey]: null } : {}),
+    });
+  });
 }
 
 export async function setThemeSetting(theme: Theme | InstalledTheme, key: string, value: PluginOptionValue): Promise<void> {

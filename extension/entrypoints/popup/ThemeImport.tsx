@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import { validateThemeImport } from '@/theme-engine/import';
 import { DuplicateThemeError, installTheme, type InstalledTheme } from '@/theme-engine/installed';
 import type { Theme } from '@/theme-engine/schema';
 
@@ -22,7 +21,7 @@ export default function ThemeImport() {
       setMessage('');
       setError('');
       try {
-        const source = await file.text();
+        const [source, { validateThemeImport }] = await Promise.all([file.text(), import('@/theme-engine/import')]);
         if (request.current === current) setCandidate(validateThemeImport(file.name, source));
       } catch (cause) {
         if (request.current === current) setError(`Validation error in ${file.name}: ${cause instanceof Error ? cause.message : String(cause)}`);
