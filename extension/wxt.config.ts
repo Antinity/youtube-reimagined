@@ -9,9 +9,16 @@ export default defineConfig({
     'server:started'({ config }, server) {
       const pluginsDir = resolve(config.root, 'plugins');
       const registry = resolve(config.root, 'plugin-engine/index.ts');
+      const themesDir = resolve(config.root, 'themes');
+      const themeRegistry = resolve(config.root, 'theme-engine/discovery.ts');
 
       server.watcher.on('all', (event, file) => {
         if (event !== 'add' && event !== 'change' && event !== 'unlink') return;
+        if (dirname(resolve(file)) === themesDir && file.endsWith('.css')) {
+          server.watcher.emit('all', 'change', themeRegistry);
+          server.reloadPage('popup.html');
+          return;
+        }
         if (dirname(resolve(file)) !== pluginsDir || !file.endsWith('.js')) return;
         // A partial rebuild can leave a glob match in only some entrypoints' dependency lists.
         // Rebuild every consumer of the registry even when WXT sees this as an ordinary edit.
