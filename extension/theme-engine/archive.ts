@@ -75,7 +75,7 @@ export async function readThemeZip(file: Blob): Promise<Theme> {
       name: image[0],
       dataUrl: `data:image/${image[0].split('.').at(-1)!.toLowerCase().replace(/^jpg$/, 'jpeg')};base64,${btoa(binary)}`,
     };
-    return await validateThemeFiles(decode('theme.css'), decode('metadata.js'), preview);
+    return { ...await validateThemeFiles(decode('theme.css'), decode('metadata.js'), preview), folder };
   } finally {
     await zip.close().catch(() => {});
   }

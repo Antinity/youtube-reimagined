@@ -17,6 +17,8 @@ export interface Theme {
   css: string;
   metadataSource?: string;
   preview?: ThemePreview;
+  folder?: string;
+  legacySource?: { name: string; source: string };
 }
 
 const opening = '/* ==Theme==';

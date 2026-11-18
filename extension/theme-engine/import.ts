@@ -13,7 +13,7 @@ export function validateThemeImport(filename: string, source: string) {
   if (!/\.css$/i.test(filename)) throw new Error('Choose one .css or .theme.css file.');
   const theme = readTheme(source);
   validateThemeCss(theme.css, source);
-  return theme;
+  return { ...theme, legacySource: { name: filename, source } };
 }
 
 export function validateThemeCss(css: string, source = css) {
