@@ -1,3 +1,4 @@
+import { readNativeTheme } from './native.ts';
 import { findNodeAtLocation, parseTree, printParseErrorCode, type ParseError } from 'jsonc-parser';
 import { isNonEmptyText, isPluginId, type PluginMetadata, type PluginOption } from '../plugin-engine/schema.ts';
 import { isValidOptionValue } from '../plugin-engine/options.ts';
@@ -24,7 +25,8 @@ export function readTheme(source: string): Theme {
   const text = source.trimStart();
   const start = source.length - text.length;
   if (!text.startsWith(opening)) {
-    throw new ThemeValidationError(source, start, 'Expected a leading /* ==Theme== comment containing JSON metadata.');
+    const native = readNativeTheme(source, validateMetadata);
+    return { ...native, metadata: native.metadata as unknown as ThemeMetadata };
   }
   const jsonStart = start + opening.length;
   const end = text.indexOf(closing, opening.length);
@@ -44,7 +46,15 @@ export function readTheme(source: string): Theme {
     throw new ThemeValidationError(source, jsonStart + (node?.offset ?? 0), `${path.join('.') || 'Metadata'}: expected ${expected}.`);
   }
 
-  if (!isObject(metadata)) invalid([], 'a JSON object with id, name, description, version and authors');
+  validateMetadata(metadata, invalid);
+
+  const css = text.slice(end + closing.length);
+  if (!css.trim()) throw new ThemeValidationError(source, start + end + closing.length, 'Expected CSS after the theme metadata.');
+  return { metadata, css };
+}
+
+function validateMetadata(metadata: unknown, invalid: (path: (string | number)[], expected: string) => never): asserts metadata is ThemeMetadata {
+  if (!isObject(metadata)) invalid([], 'an object with id, name, description, version and authors');
   if (!isPluginId(metadata.id)) invalid(['id'], 'lowercase letters and digits separated by single hyphens');
   for (const field of ['name', 'description', 'version']) {
     if (!isNonEmptyText(metadata[field])) invalid([field], 'a non-empty string');
@@ -112,7 +122,4 @@ export function readTheme(source: string): Theme {
   }
   if (metadata.options !== undefined) checkOptions(metadata.options, ['options']);
 
-  const css = text.slice(end + closing.length);
-  if (!css.trim()) throw new ThemeValidationError(source, start + end + closing.length, 'Expected CSS after the theme metadata.');
-  return { metadata: metadata as unknown as ThemeMetadata, css };
 }

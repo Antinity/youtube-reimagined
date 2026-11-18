@@ -1,4 +1,5 @@
 import { ident, parse, tokenize, tokenTypes as token, walk, type SyntaxParseError } from 'css-tree';
+import { parse as parseStylesheet } from 'postcss';
 import { ThemeValidationError } from './diagnostics.ts';
 import { readTheme } from './schema.ts';
 
@@ -37,19 +38,48 @@ export function validateThemeImport(filename: string, source: string) {
   const unclosed = blocks.at(-1);
   if (unclosed) invalid(unclosed.start, `Unclosed CSS delimiter. Expected "${unclosed.expected}".`);
 
+  // CSS Tree requires & on nested rules. Add it only to the validation copy.
+  const insertions: number[] = [];
+  try {
+    parseStylesheet(theme.css).walkRules((rule) => {
+      if (rule.selector.startsWith('&')) return;
+      for (let parent = rule.parent; parent && parent.type !== 'root'; parent = parent.parent) {
+        if (parent.type === 'atrule' && /keyframes$/i.test(parent.name)) break;
+        if (parent.type === 'rule') {
+          if (rule.source?.start?.offset !== undefined) insertions.push(rule.source.start.offset);
+          break;
+        }
+      }
+    });
+  } catch (cause) {
+    const error = cause as { line?: number; column?: number; reason?: string };
+    const lineStarts = [...theme.css.matchAll(/\r\n|[\r\n\f]/g)];
+    const previous = lineStarts[(error.line ?? 1) - 2];
+    const offset = (previous ? previous.index + previous[0].length : 0) + (error.column ?? 1) - 1;
+    invalid(offset, `Invalid CSS: ${error.reason ?? String(cause)}`);
+  }
+  const validationCss = insertions.reduceRight((css, at) => `${css.slice(0, at)}& ${css.slice(at)}`, theme.css);
+  const originalOffset = (offset: number) => {
+    for (const at of insertions) {
+      if (offset < at) break;
+      offset -= Math.min(2, offset - at);
+    }
+    return offset;
+  };
+
   let ast;
   try {
-    ast = parse(theme.css, {
+    ast = parse(validationCss, {
       positions: true,
       parseCustomProperty: true,
       onParseError(error) { throw error; },
     });
   } catch (cause) {
     const error = cause as SyntaxParseError;
-    invalid(error.offset ?? 0, `Invalid CSS: ${error.message}`);
+    invalid(originalOffset(error.offset ?? 0), `Invalid CSS: ${error.message}`);
   }
   walk(ast!, (node) => {
-    const at = node.loc?.start.offset ?? 0;
+    const at = originalOffset(node.loc?.start.offset ?? 0);
     if (node.type === 'Atrule') {
       const name = ident.decode(node.name).toLowerCase();
       if (!atRules.has(name)) invalid(at, `Unsupported @${name} rule. Use self-contained CSS selectors and style rules.`);

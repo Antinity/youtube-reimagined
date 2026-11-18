@@ -5,6 +5,8 @@ import { youtubeMatches } from './youtube';
 // See https://wxt.dev/api/reference/wxt/interfaces/inlineconfig.html
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
+  // Chrome rejects literal Unicode noncharacters in extension scripts.
+  vite: () => ({ build: { rolldownOptions: { output: { charset: 'ascii' } } } }),
   hooks: {
     'server:started'({ config }, server) {
       const pluginsDir = resolve(config.root, 'plugins');
