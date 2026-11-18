@@ -1,6 +1,8 @@
+import { discoverPlugins } from '@/plugins';
+
 export default defineContentScript({
-  matches: ['*://*.google.com/*'],
-  main() {
-    console.log('Hello content.');
+  matches: ['*://www.youtube.com/*', '*://m.youtube.com/*'],
+  async main() {
+    await discoverPlugins();
   },
 });
