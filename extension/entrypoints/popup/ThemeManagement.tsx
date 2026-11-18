@@ -4,10 +4,12 @@ import { themeApplicationErrorKey } from '@/theme-engine/diagnostics';
 import { installedThemes } from '@/theme-engine/installed';
 import { readThemeSettings } from '@/theme-engine/settings';
 import { removeTheme, selectedThemeId, selectTheme, setThemeSetting, watchThemeStorage } from '@/theme-engine/storage';
-import { OptionFields } from './Options';
-import ThemeImport from './ThemeImport';
-import ResetModuleSettings from './ResetModuleSettings';
 import { fallbackPreview, validatePreview, type ThemePreview } from '@/theme-engine/preview';
+import { Checkbox } from './Options';
+import { useConfirm } from './Confirm';
+import { ModuleDetails } from './ModuleDetails';
+import { Badge, Search } from './Shell';
+import { AppIcon } from './Icon';
 
 function Preview({ image }: { image?: ThemePreview }) {
   const [verified, setVerified] = useState<ThemePreview>();
@@ -15,87 +17,74 @@ function Preview({ image }: { image?: ThemePreview }) {
     let active = true;
     if (image) void validatePreview(image.name, image.dataUrl).then(() => {
       if (active) setVerified(image);
-    }).catch((error) => console.error(error));
+    }).catch(console.error);
     return () => { active = false; };
   }, [image]);
-  return <img src={image && verified === image ? image.dataUrl : fallbackPreview} width={160} height={120} alt="" />;
+  return <img src={image && verified === image ? image.dataUrl : fallbackPreview} alt="" />;
 }
 
-export default function ThemeManagement() {
+export default function ThemeManagement({ detail, openDetail }: { detail?: string; openDetail: (id: string) => void }) {
   const [bundled] = useState(discoverThemes);
   const [values, setValues] = useState<Readonly<Record<string, unknown>>>();
   const [error, setError] = useState('');
-  const [pendingSelection, setPendingSelection] = useState<string | null>();
+  const [query, setQuery] = useState('');
+  const confirm = useConfirm();
 
-  useEffect(() => watchThemeStorage((current) => {
-    setValues(current);
-    setPendingSelection((pending) => pending === selectedThemeId(current) ? undefined : pending);
-  }, (cause) => setError(`Could not read themes: ${String(cause)}`), true), []);
+  useEffect(() => watchThemeStorage(setValues, (cause) => setError(`Could not read themes. ${String(cause)}`), true), []);
 
-  const imported = values ? installedThemes(values).filter((item) =>
-    !bundled.some(({ metadata }) => metadata.id === item.metadata.id)) : [];
+  const saved = values ? installedThemes(values) : [];
+  const imported = saved.filter((item) => !bundled.some(({ metadata }) => metadata.id === item.metadata.id));
   const themes = [...bundled, ...imported];
   const selected = values ? selectedThemeId(values) : null;
-  const shown = pendingSelection === undefined ? selected : pendingSelection;
   const applicationError = values?.[themeApplicationErrorKey] as { id: string; message: string } | undefined;
 
-  async function choose(id: string | null) {
+  async function save(action: () => Promise<void>) {
     setError('');
-    setPendingSelection(id);
     try {
-      await selectTheme(id);
+      await action();
+      return true;
     } catch (cause) {
-      setPendingSelection(undefined);
       setError(String(cause));
+      return false;
     }
   }
 
-  return <section>
-    <h2>Themes</h2>
-    <ThemeImport />
-    {error && <p role="alert">{error}</p>}
-    {applicationError?.id === selected && <p role="alert">Application error: {applicationError.message}</p>}
-    {values && <fieldset>
-      <legend>Active theme</legend>
-      <label><input type="radio" name="active-theme" checked={!themes.some(({ metadata }) => metadata.id === shown)}
-        onChange={() => { void choose(null); }} /> No theme</label>
-      {themes.map((theme) => {
-        const { metadata } = theme;
-        const installed = imported.find((item) => item === theme);
-        return <div key={metadata.id}>
-          <label><input type="radio" name="active-theme" checked={shown === metadata.id}
-            onChange={() => { void choose(metadata.id); }} /> {metadata.name}</label>
-          <div><Preview image={theme.preview} /></div>
-          <p>{metadata.description}</p>
-          <p>{[metadata.authors.length ? `By ${metadata.authors.join(', ')}` : '',
-            metadata.contributors?.length ? `Contributors: ${metadata.contributors.join(', ')}` : '',
-            `v${metadata.version}`, installed ? 'Imported' : 'Bundled'].filter(Boolean).join(' · ')}</p>
-          {metadata.license && <p>License {metadata.license}</p>}
-          {metadata.homepage?.startsWith('https://') && <p><a href={metadata.homepage} target="_blank" rel="noopener noreferrer">Theme homepage</a></p>}
-          {installed && <button aria-label={`Remove theme ${metadata.name}`} onClick={async () => {
-            setError('');
-            try {
-              await removeTheme(installed);
-            } catch (cause) {
-              setError(String(cause));
-            }
-          }}>Remove</button>}
-          {metadata.options && Object.keys(metadata.options).length > 0 && <details>
-            <summary>{metadata.name} settings</summary>
-            <ResetModuleSettings kind="theme" id={metadata.id} name={metadata.name} />
-            <OptionFields options={metadata.options} settings={readThemeSettings(theme, values)} onSave={async (key, _, value) => {
-              setError('');
-              try {
-                await setThemeSetting(theme, key, value);
-                return true;
-              } catch (cause) {
-                setError(String(cause));
-                return false;
-              }
-            }} />
-          </details>}
-        </div>;
-      })}
-    </fieldset>}
+  const visible = themes.filter(({ metadata }) =>
+    `${metadata.name} ${metadata.description}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const theme = themes.find(({ metadata }) => metadata.id === detail);
+  const installed = saved.find(({ metadata }) => metadata.id === detail);
+
+  return <section className="page">
+    {error && <p className="notice error" role="alert">{error}</p>}
+    {applicationError?.id === selected && <p className="notice error" role="alert">Application error. {applicationError.message}</p>}
+    {!values ? <p role="status">Loading themes…</p> : detail ? theme ? <ModuleDetails kind="theme"
+      metadata={theme.metadata} settings={readThemeSettings(theme, values)} thirdParty={imported.some((item) => item === theme)}
+      control={<Checkbox label={`Activate ${theme.metadata.name}`} checked={selected === detail}
+        onSave={(active) => save(() => selectTheme(active ? detail : null))} />}
+      onSave={(key, _, value) => save(() => setThemeSetting(theme, key, value))}
+      remove={installed && (async () => {
+        if (await confirm({ title: 'Remove theme?', message: `Remove the imported copy of ${theme.metadata.name}.`,
+          action: 'Remove theme', destructive: true })) await save(() => removeTheme(installed));
+      })} /> : <p>This theme is no longer installed.</p> : <>
+      <h1 className="visually-hidden">Themes</h1>
+      <Search label="Search themes" value={query} setValue={setQuery} />
+      {visible.length === 0 && <p className="empty">{themes.length ? 'No themes match your search.' : 'No themes installed.'}</p>}
+      <div className="cards">
+        {visible.map((item) => {
+          const { metadata } = item;
+          const active = selected === metadata.id;
+          return <div className="theme-card" key={metadata.id} data-active={active}>
+            <button className="theme-choice" aria-pressed={active} onClick={() => { void save(() => selectTheme(active ? null : metadata.id)); }}>
+              <Preview image={item.preview} />
+              <span className="theme-copy"><strong>{metadata.name} <Badge thirdParty={imported.some((theme) => theme === item)} badgeNew={metadata.badgeNew} /></strong>
+                <span>{metadata.description}</span></span>
+            </button>
+            <button className="icon-button theme-settings" title={`${metadata.name} settings`} aria-label={`${metadata.name} settings`}
+              onClick={() => openDetail(metadata.id)}><AppIcon name="cog" size={20} /></button>
+          </div>;
+        })}
+      </div>
+      {selected && <button className="text-button" onClick={() => { void save(() => selectTheme(null)); }}>No theme</button>}
+    </>}
   </section>;
 }

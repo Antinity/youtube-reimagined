@@ -12,10 +12,18 @@ import { refreshUserScriptsMessage, userScriptAccess } from '@/plugin-engine/use
 import PluginImport from './PluginImport';
 import ThemeManagement from './ThemeManagement';
 import DataManagement from './DataManagement';
-import ResetModuleSettings from './ResetModuleSettings';
-import { Checkbox, OptionFields } from './Options';
+import ThemeImport from './ThemeImport';
+import { AppIcon } from './Icon';
+import { Badge, Search, Shell, type Page } from './Shell';
+import { useConfirm } from './Confirm';
+import { ModuleDetails } from './ModuleDetails';
+import { Checkbox } from './Options';
 
 export default function App() {
+  const [page, setPage] = useState<Page>('plugins');
+  const [detail, setDetail] = useState<string>();
+  const [query, setQuery] = useState('');
+  const confirm = useConfirm();
   const [plugins, setPlugins] = useState<Plugin[]>();
   const [installed, setInstalled] = useState<InstalledPluginInfo[]>();
   const [values, setValues] = useState<Readonly<Record<string, unknown>>>();
@@ -96,55 +104,72 @@ export default function App() {
     ...thirdPartyPlugins.map((thirdParty) => ({ plugin: thirdParty.metadata, thirdParty })),
   ];
 
-  return (
-    <main style={{ width: 360 }}>
-      <h1>Plugins</h1>
-      <PluginImport bundledIds={plugins?.map(({ id }) => id)} />
-      <ThemeManagement />
-      <DataManagement />
-      {error && <p role="alert">{error}</p>}
-      {(!entries || !values) && !error && <p>Loading plugins…</p>}
-      {hasInstalled && accessError && <p>{accessError}{' '}
-        <button onClick={checkAccess}>Check access</button>
-      </p>}
-      {entries?.length === 0 && <p>No plugins found.</p>}
-      {entries && values && entries.map(({ plugin, thirdParty }) => {
-        const importedCopy = thirdParty ?? installed?.find(({ metadata }) => metadata.id === plugin.id);
-        const enabled = values[enabledKey(plugin.id)] === true;
-        const executionError = thirdParty ? values[pluginErrorKey(plugin.id)] as InstalledPluginError | undefined : undefined;
-        const settings = readPluginSettings(plugin, values);
-        return (
-          <section key={plugin.id}>
-            <h2>{plugin.name}</h2>
-            <p>{plugin.description}</p>
-            {thirdParty && <p>Third-party · Version {plugin.version}{plugin.authors.length ? ` · ${plugin.authors.join(', ')}` : ''}
-              {plugin.contributors?.length ? ` · Contributors: ${plugin.contributors.join(', ')}` : ''}
-            </p>}
-            {executionError && executionError.revision === thirdParty?.revision &&
-              <p role="alert" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{executionError.message}</p>}
-            <label>
-              <Checkbox label={`Enable ${plugin.name}`}
-                checked={enabled} disabled={Boolean(thirdParty && accessError && !enabled)}
-                onSave={(next) => saveEnabled(plugin, thirdParty, next)} />
-              Enabled
-            </label>
-            {importedCopy && <> <button aria-label={thirdParty ? `Remove ${plugin.name}` : `Remove imported copy of ${plugin.name}`} onClick={async () => {
-              setError('');
-              try {
-                await removePlugin(importedCopy);
-              } catch (cause) {
-                setError(String(cause));
-              }
-            }}>{thirdParty ? 'Remove' : 'Remove imported copy'}</button></>}
-            {plugin.options && Object.keys(plugin.options).length > 0 && <details>
-              <summary>{plugin.name} settings</summary>
-              <ResetModuleSettings kind="plugin" id={plugin.id} name={plugin.name} />
-              <OptionFields options={plugin.options} settings={settings}
-                onSave={(key, option, next) => saveSetting(plugin, thirdParty, key, option, next)} />
-            </details>}
-          </section>
-        );
-      })}
-    </main>
-  );
+  const pluginMatches = entries?.filter(({ plugin }) =>
+    `${plugin.name} ${plugin.description}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const detailPlugin = entries?.find(({ plugin }) => plugin.id === detail);
+
+  function navigate(next: Page) {
+    setDetail(undefined);
+    setPage(next);
+  }
+
+  function renderPlugin({ plugin, thirdParty }: NonNullable<typeof entries>[number]) {
+    if (!values) return null;
+    const importedCopy = thirdParty ?? installed?.find(({ metadata }) => metadata.id === plugin.id);
+    const enabled = values[enabledKey(plugin.id)] === true;
+    const executionError = thirdParty ? values[pluginErrorKey(plugin.id)] as InstalledPluginError | undefined : undefined;
+    const control = <Checkbox label={`Enable ${plugin.name}`} checked={enabled}
+      disabled={Boolean(thirdParty && accessError && !enabled)} onSave={(next) => saveEnabled(plugin, thirdParty, next)} />;
+    const runtimeError = executionError && executionError.revision === thirdParty?.revision &&
+      <p className="notice error runtime-error" role="alert">{executionError.message}</p>;
+    if (detail) return <>
+      <ModuleDetails kind="plugin" metadata={plugin} settings={readPluginSettings(plugin, values)}
+        thirdParty={Boolean(thirdParty)} control={control}
+        onSave={(key, option, next) => saveSetting(plugin, thirdParty, key, option, next)}
+        remove={importedCopy && (async () => {
+          if (!await confirm({ title: 'Remove plugin?', message: `Remove the imported copy of ${plugin.name}.`,
+            action: 'Remove plugin', destructive: true })) return;
+          try {
+            await removePlugin(importedCopy);
+            setDetail(undefined);
+          } catch (cause) {
+            setError(String(cause));
+          }
+        })} />
+      {runtimeError}
+    </>;
+    return <article className="plugin-card" key={plugin.id}>
+      <div className="card-top">
+        <h2>{plugin.name} <Badge thirdParty={Boolean(thirdParty)} badgeNew={plugin.badgeNew} /></h2>
+        <button className="icon-button" title={`${plugin.name} settings`} aria-label={`${plugin.name} settings`}
+          onClick={() => setDetail(plugin.id)}><AppIcon name="cog" size={20} /></button>
+        {control}
+      </div>
+      <p>{plugin.description}</p>
+      {runtimeError}
+    </article>;
+  }
+
+  return <Shell page={page} navigate={navigate} back={detail ? () => setDetail(undefined) : undefined}>
+    {error && <p className="notice error" role="alert">{error}</p>}
+    {page === 'plugins' && <section className="page">
+      <h1 className="visually-hidden">Plugins</h1>
+      {hasInstalled && accessError && <div className="notice" role="status"><p>{accessError}</p>
+        <button onClick={checkAccess}>Check access</button></div>}
+      {!entries || !values ? <p role="status">Loading plugins…</p> : detail
+        ? detailPlugin ? renderPlugin(detailPlugin) : <p>This plugin is no longer installed.</p>
+        : <>
+          <Search label="Search plugins" value={query} setValue={setQuery} />
+          {pluginMatches?.length === 0 && <p className="empty">{entries.length ? 'No plugins match your search.' : 'No plugins installed.'}</p>}
+          <div className="cards">{pluginMatches?.map(renderPlugin)}</div>
+        </>}
+    </section>}
+    {page === 'themes' && <ThemeManagement detail={detail} openDetail={setDetail} />}
+    {page === 'browse' && <section className="page"><h1>Browse</h1><p>Coming Soon</p></section>}
+    {page === 'add' && <section className="page"><PluginImport bundledIds={plugins?.map(({ id }) => id)} /><ThemeImport /></section>}
+    {page === 'settings' && <section className="page"><DataManagement /></section>}
+    {page === 'about' && <section className="page settings-page"><h1>About</h1>
+      <a href="https://github.com/Antinity/youtube-reimagined" target="_blank" rel="noreferrer">GitHub</a>
+    </section>}
+  </Shell>;
 }

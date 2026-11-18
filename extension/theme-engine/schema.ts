@@ -75,6 +75,7 @@ export function validateMetadata(metadata: unknown, invalid: (path: (string | nu
   if (metadata.schemaVersion !== undefined && metadata.schemaVersion !== 1) {
     invalid(['schemaVersion'], '1 or an omitted property');
   }
+  if (metadata.badgeNew !== undefined && typeof metadata.badgeNew !== 'boolean') invalid(['badgeNew'], 'true or false');
   if (metadata.license !== undefined && !isNonEmptyText(metadata.license)) invalid(['license'], 'a non-empty license name');
   if (metadata.homepage !== undefined) {
     try {

@@ -11,6 +11,7 @@ export interface PluginMetadata {
   contributors?: readonly string[];
   options?: PluginOptions;
   apiVersion?: typeof pluginApiVersion;
+  badgeNew?: boolean;
 }
 
 export interface Plugin extends PluginMetadata {
@@ -84,12 +85,13 @@ function hasValidOptions(options: PluginOptions, keys = new Set<string>(), ances
 }
 
 export function hasValidMetadata(plugin: PluginMetadata): boolean {
-  const { id, name, description, version, authors, contributors, options, apiVersion } = plugin;
+  const { id, name, description, version, authors, contributors, options, apiVersion, badgeNew } = plugin;
   return isPluginId(id)
     && [name, description, version].every(isNonEmptyText)
     && Array.isArray(authors) && authors.every((author) => typeof author === 'string')
     && (contributors === undefined
       || (Array.isArray(contributors) && contributors.every((name) => typeof name === 'string')))
     && (apiVersion === undefined || apiVersion === pluginApiVersion)
+    && (badgeNew === undefined || typeof badgeNew === 'boolean')
     && (options === undefined || hasValidOptions(options));
 }

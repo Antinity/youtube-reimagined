@@ -1,5 +1,7 @@
 import { useId, useLayoutEffect, useRef, type ReactNode } from 'react';
 import type { PluginOption, PluginOptions, PluginOptionValue, PluginSettings } from '@/plugin-engine';
+import { isValidOptionValue } from '@/plugin-engine/options';
+import { AppIcon } from './Icon';
 import './option-help.css';
 
 export function Checkbox({ id, checked, label, disabled, onSave }: {
@@ -16,7 +18,7 @@ export function Checkbox({ id, checked, label, disabled, onSave }: {
     if (input.current) input.current.checked = checked;
   }, [checked]);
 
-  return <input id={id} ref={input} type="checkbox" aria-label={label} defaultChecked={checked} disabled={disabled}
+  return <input id={id} ref={input} className="switch" type="checkbox" role="switch" aria-label={label} defaultChecked={checked} disabled={disabled}
     onChange={async ({ currentTarget }) => {
       const write = ++latestWrite.current;
       if (!await onSave(currentTarget.checked) && write === latestWrite.current) {
@@ -79,17 +81,29 @@ function OptionInput({ id, option, value, onSave }: {
     </>;
   }
 
-  return <input id={id} type={numeric ? 'number' : 'text'} defaultValue={String(value)}
+  const field = <input id={id} type={numeric ? 'number' : 'text'} defaultValue={String(value)}
     min={min} max={max} step={step}
     onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }}
     onBlur={(event) => { void saveInput(event.currentTarget); }} />;
+  if (!numeric) return field;
+
+  const increment = option.step ?? 1;
+  const previous = Number((Number(value) - increment).toPrecision(12));
+  const next = Number((Number(value) + increment).toPrecision(12));
+  return <div className="stepper">
+    <button className="icon-button" aria-label={`Decrease ${option.label}`} title={`Decrease ${option.label}`}
+      disabled={!isValidOptionValue(option, previous)} onClick={() => { void onSave(previous); }}><AppIcon name="minus" size={14} /></button>
+    {field}
+    <button className="icon-button" aria-label={`Increase ${option.label}`} title={`Increase ${option.label}`}
+      disabled={!isValidOptionValue(option, next)} onClick={() => { void onSave(next); }}><AppIcon name="plus" size={14} /></button>
+  </div>;
 }
 
 function OptionHelp({ label, tooltip }: { label: string; tooltip?: string }) {
   const tooltipId = useId();
   if (!tooltip) return null;
   return <span className="option-help">
-    <button type="button" aria-label={`Help for ${label}`} aria-describedby={tooltipId}>?</button>
+    <button type="button" className="icon-button" aria-label={`Help for ${label}`} aria-describedby={tooltipId}><AppIcon name="help" size={16} /></button>
     <span id={tooltipId} role="tooltip">{tooltip}</span>
   </span>;
 }
@@ -101,10 +115,12 @@ function OptionRow({ option, value, onSave }: {
 }) {
   const id = useId();
   return <div className="option-row">
-    <label htmlFor={id}>{option.label}</label>{' '}
-    <OptionHelp label={option.label} tooltip={option.tooltip} />{' '}
+    <div className="option-label"><label htmlFor={id}>{option.label}</label>
+      <OptionHelp label={option.label} tooltip={option.tooltip} /></div>
+    <div className="option-control">
     <OptionInput id={id} key={option.type === 'number' || option.type === 'string' ? String(value) : undefined}
       option={option} value={value} onSave={onSave} />
+    </div>
   </div>;
 }
 
