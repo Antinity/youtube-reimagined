@@ -1,4 +1,5 @@
 import { browser } from 'wxt/browser';
+import { discoverPlugins } from './index';
 import type { PluginImportCandidate } from './import';
 import type { PluginOptionValue } from './schema';
 import { enabledKey, setPluginSetting } from './storage.ts';
@@ -87,13 +88,16 @@ export async function installPlugin(candidate: PluginImportCandidate, bundledIds
 export async function removePlugin(plugin: InstalledPluginInfo): Promise<void> {
   const { id } = plugin.metadata;
   const key = installedKey(id);
+  const bundled = (await discoverPlugins()).some((candidate) => candidate.id === id);
   await navigator.locks.request(lock, async () => {
     const values = await browser.storage.local.get(null);
     const current = values[key] as InstalledPlugin | undefined;
     if (!current) return;
     if (current.revision !== plugin.revision) throw new Error(`"${id}" was replaced. Reopen the popup before removing it.`);
     const settings = Object.keys(values).filter((storedKey) => storedKey.startsWith(`plugin:${id}:setting:`));
-    await browser.storage.local.remove([key, enabledKey(id), pluginErrorKey(id), ...settings]);
+    const keys = [key, pluginErrorKey(id)];
+    if (!bundled) keys.push(enabledKey(id), ...settings);
+    await browser.storage.local.remove(keys);
   });
 }
 

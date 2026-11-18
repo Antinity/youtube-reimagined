@@ -2,7 +2,7 @@ import { browser, type Browser } from 'wxt/browser';
 import { youtubeMatches } from '@/youtube';
 import { installedKey, isInstalledKey, reportInstalledError, type InstalledPlugin } from './installed';
 import { enabledKey, readPluginSettings } from './storage';
-import type { PluginSettings } from './index';
+import { discoverPlugins, type PluginSettings } from './index';
 
 const prefix = 'yr-plugin:';
 const adapter = '/user-plugin.js';
@@ -40,11 +40,13 @@ export function startUserScripts() {
   let sync = Promise.resolve();
   let worldSession: string | undefined;
   const sessions = new Map<Browser.runtime.Port, { id: string; revision: string; session: string }>();
+  const bundledIds = discoverPlugins().then((plugins) => new Set(plugins.map(({ id }) => id)));
 
-  function updateSessions(values: Readonly<Record<string, unknown>>, allowed: boolean) {
+  function updateSessions(values: Readonly<Record<string, unknown>>, allowed: boolean, bundled: Set<string>) {
     for (const [port, { id, revision, session }] of sessions) {
       const plugin = values[installedKey(id)] as InstalledPlugin | undefined;
-      const enabled = allowed && session === worldSession && plugin?.revision === revision && values[enabledKey(id)] === true;
+      const enabled = allowed && !bundled.has(id) && session === worldSession
+        && plugin?.revision === revision && values[enabledKey(id)] === true;
       const message: UserPluginMessage = enabled ? { settings: readPluginSettings(plugin.metadata, values) } : { stop: true };
       if (!enabled) sessions.delete(port);
       try {
@@ -56,7 +58,7 @@ export function startUserScripts() {
   }
 
   async function reconcile(updateRegistry: boolean) {
-    const values = await browser.storage.local.get(null);
+    const [values, bundled] = await Promise.all([browser.storage.local.get(null), bundledIds]);
     const access = userScriptAccess();
     if (!access && !worldSession) {
       // Chromium restores registered scripts across restarts, but their renderer messaging may be stale.
@@ -64,12 +66,12 @@ export function startUserScripts() {
       worldSession = typeof cached === 'string' ? cached : crypto.randomUUID();
       if (worldSession !== cached) await browser.storage.session.set({ [sessionKey]: worldSession });
     }
-    updateSessions(values, !access);
+    updateSessions(values, !access, bundled);
     if (!updateRegistry || access || !worldSession) return;
     const session = worldSession;
-    const plugins = Object.entries(values)
-      .filter(([key, plugin]) => isInstalledKey(key) && values[enabledKey((plugin as InstalledPlugin).metadata.id)] === true)
-      .map(([, plugin]) => plugin as InstalledPlugin);
+    const plugins = Object.entries(values).filter(([key]) => isInstalledKey(key))
+      .map(([, plugin]) => plugin as InstalledPlugin)
+      .filter(({ metadata: { id } }) => !bundled.has(id) && values[enabledKey(id)] === true);
     const scripts = plugins.map((plugin) => registration(plugin, session));
     const present = await browser.userScripts.getScripts();
     const desired = new Set(scripts.map(({ id }) => id));

@@ -182,7 +182,9 @@ export default function App() {
     void browser.runtime.sendMessage(refreshUserScriptsMessage).catch((cause) => setError(String(cause)));
   }
 
-  const hasInstalled = Boolean(installed?.length);
+  const bundledIds = new Set(plugins?.map(({ id }) => id));
+  const thirdPartyPlugins = installed?.filter(({ metadata }) => !bundledIds.has(metadata.id));
+  const hasInstalled = Boolean(thirdPartyPlugins?.length);
   useEffect(() => {
     if (!hasInstalled) return;
     checkAccess();
@@ -217,9 +219,9 @@ export default function App() {
     }
   }
 
-  const entries: { plugin: PluginMetadata; thirdParty?: InstalledPluginInfo }[] | undefined = plugins && installed && [
+  const entries: { plugin: PluginMetadata; thirdParty?: InstalledPluginInfo }[] | undefined = plugins && thirdPartyPlugins && [
     ...plugins.map((plugin) => ({ plugin })),
-    ...installed.map((thirdParty) => ({ plugin: thirdParty.metadata, thirdParty })),
+    ...thirdPartyPlugins.map((thirdParty) => ({ plugin: thirdParty.metadata, thirdParty })),
   ];
 
   return (
@@ -233,6 +235,7 @@ export default function App() {
       </p>}
       {entries?.length === 0 && <p>No plugins found.</p>}
       {entries && values && entries.map(({ plugin, thirdParty }) => {
+        const importedCopy = thirdParty ?? installed?.find(({ metadata }) => metadata.id === plugin.id);
         const enabled = values[enabledKey(plugin.id)] === true;
         const executionError = thirdParty ? values[pluginErrorKey(plugin.id)] as InstalledPluginError | undefined : undefined;
         const settings = readPluginSettings(plugin, values);
@@ -251,14 +254,14 @@ export default function App() {
                 onSave={(next) => saveEnabled(plugin, thirdParty, next)} />
               Enabled
             </label>
-            {thirdParty && <> <button aria-label={`Remove ${plugin.name}`} onClick={async () => {
+            {importedCopy && <> <button aria-label={thirdParty ? `Remove ${plugin.name}` : `Remove imported copy of ${plugin.name}`} onClick={async () => {
               setError('');
               try {
-                await removePlugin(thirdParty);
+                await removePlugin(importedCopy);
               } catch (cause) {
                 setError(String(cause));
               }
-            }}>Remove</button></>}
+            }}>{thirdParty ? 'Remove' : 'Remove imported copy'}</button></>}
             {plugin.options && Object.keys(plugin.options).length > 0 && <details>
               <summary>{plugin.name} settings</summary>
               <OptionFields options={plugin.options} settings={settings}
