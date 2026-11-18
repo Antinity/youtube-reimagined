@@ -31,7 +31,7 @@ const panels = [
 function Brand() {
   return (
     <a className="brand" href="#top">
-      <img src={logo} alt="" />
+      <img width="512" height="512" src={logo} alt="" />
       YouTube Reimagined
     </a>
   )
@@ -40,7 +40,7 @@ function Brand() {
 function Download() {
   return (
     <a className="download" href={releases}>
-      <img src={github} alt="" />
+      <img width="19" height="19" src={github} alt="" />
       Get it on GitHub <span aria-hidden="true">↗</span>
     </a>
   )
@@ -69,10 +69,10 @@ function Preview() {
       <div className="stage" data-visual>
         <div className="ident" aria-hidden="true">
           <div className="orbits" />
-          <img src={logo} alt="" />
+          <img width="512" height="512" src={logo} alt="" />
         </div>
         <div className="popup" key={panel.name} role="region" aria-label={panel.name + " screenshot"} tabIndex={0}>
-          <img src={panel.image} alt={panel.alt} />
+          <img width="609" height="867" src={panel.image} alt={panel.alt} />
         </div>
       </div>
     </div>

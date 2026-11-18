@@ -225,6 +225,7 @@ nav a:hover {
   scrollbar-color: #76685e #292422;
 }
 .popup img {
+  height: auto;
   width: 100%;
   display: block;
 }
