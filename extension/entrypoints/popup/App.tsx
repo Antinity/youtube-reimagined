@@ -11,6 +11,7 @@ import {
 import { refreshUserScriptsMessage, userScriptAccess } from '@/plugin-engine/user-scripts';
 import PluginImport from './PluginImport';
 import ThemeManagement from './ThemeManagement';
+import DataManagement from './DataManagement';
 import { Checkbox, OptionFields } from './Options';
 
 export default function App() {
@@ -99,6 +100,7 @@ export default function App() {
       <h1>Plugins</h1>
       <PluginImport bundledIds={plugins?.map(({ id }) => id)} />
       <ThemeManagement />
+      <DataManagement />
       {error && <p role="alert">{error}</p>}
       {(!entries || !values) && !error && <p>Loading plugins…</p>}
       {hasInstalled && accessError && <p>{accessError}{' '}
