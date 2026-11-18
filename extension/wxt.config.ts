@@ -13,10 +13,9 @@ export default defineConfig({
       server.watcher.on('all', (event, file) => {
         if (event !== 'add' && event !== 'change' && event !== 'unlink') return;
         if (dirname(resolve(file)) !== pluginsDir || !file.endsWith('.js')) return;
-        if (event !== 'change') {
-          // A new glob match is absent from the previous content-script bundle's dependencies.
-          server.watcher.emit('all', 'change', registry);
-        }
+        // A partial rebuild can leave a glob match in only some entrypoints' dependency lists.
+        // Rebuild every consumer of the registry even when WXT sees this as an ordinary edit.
+        server.watcher.emit('all', 'change', registry);
         server.reloadPage('popup.html');
       });
     },
