@@ -21,7 +21,8 @@ export async function exportModules(): Promise<Blob> {
     for (const { id, module: installed, retained } of backup.plugins) {
       const module = installed ?? retained;
       if (!module) continue;
-      const safe = /^[\w.-]+\.js$/i.test(module.name) ? module.name : `${id}.js`;
+      const safe = /^[^<>:"/\\|?*\x00-\x1f]+\.js$/i.test(module.name)
+        && !/^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])\./i.test(module.name) ? module.name : `${id}.js`;
       await zip.add(`plugins/${uniqueName(safe, `${id}.js`, files)}`, new TextReader(module.source));
     }
     for (const { id, module: installed, retained } of backup.themes) {
