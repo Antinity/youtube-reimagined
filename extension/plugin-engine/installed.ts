@@ -42,7 +42,9 @@ export async function installPlugin(candidate: PluginImportCandidate, bundledIds
     if (replaceRevision && !current) throw new Error(`"${id}" was removed. Select the file again to install it.`);
 
     const plugin: InstalledPlugin = { ...candidate, revision: crypto.randomUUID() };
-    await browser.storage.local.set({ [key]: plugin });
+    const changes: Record<string, unknown> = { [key]: plugin };
+    if (!current) changes[enabledKey(id)] = false;
+    await browser.storage.local.set(changes);
     return plugin;
   });
 }

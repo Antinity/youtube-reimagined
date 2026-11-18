@@ -6,6 +6,7 @@ import type { PluginSettings } from './index';
 
 const prefix = 'yr-plugin:';
 const adapter = '/user-plugin.js';
+const sessionKey = 'user-plugin-world-session';
 
 export type UserPluginMessage = { settings: PluginSettings } | { stop: true };
 
@@ -21,26 +22,28 @@ export function userScriptAccess(): string | undefined {
   return 'Third-party plugins require Chromium 135 or newer. Enable Allow User Scripts in this extension’s details (Developer mode in Chromium 135–137).';
 }
 
-function registration(plugin: InstalledPlugin): Browser.userScripts.RegisteredUserScript {
+function registration(plugin: InstalledPlugin, session: string): Browser.userScripts.RegisteredUserScript {
   const { metadata, revision } = plugin;
-  const code = `globalThis.__yrAttachPlugin(${JSON.stringify(metadata.id)}, ${JSON.stringify(revision)}, ${plugin.factory});`;
+  const name = `${prefix}${metadata.id}:${revision}:${session}`;
+  const code = `globalThis.__yrAttachPlugin(${JSON.stringify(metadata.id)}, ${JSON.stringify(name)}, ${plugin.factory});`;
   return {
-    id: `${prefix}${revision}`,
+    id: `${prefix}${session}:${revision}`,
     matches: youtubeMatches,
     world: 'USER_SCRIPT',
-    worldId: `yr-${metadata.id}`,
+    worldId: `yr-${session}-${metadata.id}`,
     js: [{ file: adapter }, { code }],
   };
 }
 
 export function startUserScripts() {
   let sync = Promise.resolve();
-  const sessions = new Map<Browser.runtime.Port, { id: string; revision: string }>();
+  let worldSession: string | undefined;
+  const sessions = new Map<Browser.runtime.Port, { id: string; revision: string; session: string }>();
 
   function updateSessions(values: Readonly<Record<string, unknown>>) {
-    for (const [port, { id, revision }] of sessions) {
+    for (const [port, { id, revision, session }] of sessions) {
       const plugin = values[installedKey(id)] as InstalledPlugin | undefined;
-      const enabled = plugin?.revision === revision && values[enabledKey(id)] === true;
+      const enabled = session === worldSession && plugin?.revision === revision && values[enabledKey(id)] === true;
       const message: UserPluginMessage = enabled ? { settings: readPluginSettings(plugin.metadata, values) } : { stop: true };
       if (!enabled) sessions.delete(port);
       try {
@@ -53,15 +56,29 @@ export function startUserScripts() {
 
   async function reconcile(updateRegistry: boolean) {
     const values = await browser.storage.local.get(null);
+    const access = userScriptAccess();
+    if (!access && !worldSession) {
+      // Chromium restores registered scripts across restarts, but their renderer messaging may be stale.
+      const cached = (await browser.storage.session.get(sessionKey))[sessionKey];
+      worldSession = typeof cached === 'string' ? cached : crypto.randomUUID();
+      if (worldSession !== cached) await browser.storage.session.set({ [sessionKey]: worldSession });
+    }
     updateSessions(values);
-    if (!updateRegistry || userScriptAccess()) return;
+    if (!updateRegistry || access || !worldSession) return;
+    const session = worldSession;
     const scripts = Object.entries(values)
       .filter(([key, plugin]) => isInstalledKey(key) && values[enabledKey((plugin as InstalledPlugin).metadata.id)] === true)
-      .map(([, plugin]) => registration(plugin as InstalledPlugin));
+      .map(([, plugin]) => registration(plugin as InstalledPlugin, session));
     const present = await browser.userScripts.getScripts();
     const desired = new Set(scripts.map(({ id }) => id));
-    const obsolete = present.filter(({ id }) => id.startsWith(prefix) && !desired.has(id)).map(({ id }) => id);
-    if (obsolete.length) await browser.userScripts.unregister({ ids: obsolete });
+    const obsolete = present.filter(({ id }) => id.startsWith(prefix) && !desired.has(id));
+    if (obsolete.length) {
+      await browser.userScripts.unregister({ ids: obsolete.map(({ id }) => id) });
+      const worlds = new Set(scripts.map(({ worldId }) => worldId));
+      for (const { worldId } of obsolete) {
+        if (worldId && !worlds.has(worldId)) await browser.userScripts.resetWorldConfiguration(worldId);
+      }
+    }
 
     const existing = new Set(present.map(({ id }) => id));
     for (const script of scripts) {
@@ -93,14 +110,14 @@ export function startUserScripts() {
   };
 
   browser.runtime.onUserScriptConnect?.addListener((port) => {
-    const [namespace, id, revision] = port.name.split(':');
-    if (`${namespace}:` !== prefix || !id || !revision || port.sender?.frameId !== 0
+    const [namespace, id, revision, session] = port.name.split(':');
+    if (`${namespace}:` !== prefix || !id || !revision || !session || port.sender?.frameId !== 0
       || !/^https?:\/\/(?:www|m)\.youtube\.com\//.test(port.sender.url ?? '')) {
       port.disconnect();
       return;
     }
 
-    sessions.set(port, { id, revision });
+    sessions.set(port, { id, revision, session });
     port.onDisconnect.addListener(() => sessions.delete(port));
     schedule(false);
   });
@@ -110,5 +127,8 @@ export function startUserScripts() {
     if (keys.some((key) => isInstalledKey(key) || /^plugin:[^:]+:enabled$/.test(key))) schedule(true);
     else if (sessions.size && keys.some((key) => /^plugin:[^:]+:setting:/.test(key))) schedule(false);
   });
+  browser.runtime.onStartup.addListener(() => schedule(true));
+  browser.runtime.onInstalled.addListener(() => schedule(true));
+  browser.permissions.onAdded.addListener(() => schedule(true));
   schedule(true);
 }
