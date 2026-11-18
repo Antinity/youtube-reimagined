@@ -15,7 +15,7 @@ export interface InstalledPluginError {
 }
 
 const prefix = 'installed-plugin:';
-const lock = 'youtube-reimagined:installed-plugins';
+export const pluginLock = 'youtube-reimagined:installed-plugins';
 
 export function installedKey(id: string): string {
   return `${prefix}${id}`;
@@ -71,7 +71,7 @@ export async function installPlugin(candidate: PluginImportCandidate, bundledIds
   const { id } = candidate.metadata;
   if (bundledIds.includes(id)) throw new Error(`"${id}" belongs to a bundled plugin. Choose a different ID.`);
 
-  return navigator.locks.request(lock, async () => {
+  return navigator.locks.request(pluginLock, async () => {
     const key = installedKey(id);
     const current = (await browser.storage.local.get(key))[key] as InstalledPlugin | undefined;
     if (current && current.revision !== replaceRevision) throw new DuplicatePluginError(current);
@@ -89,7 +89,7 @@ export async function removePlugin(plugin: InstalledPluginInfo): Promise<void> {
   const { id } = plugin.metadata;
   const key = installedKey(id);
   const bundled = (await discoverPlugins()).some((candidate) => candidate.id === id);
-  await navigator.locks.request(lock, async () => {
+  await navigator.locks.request(pluginLock, async () => {
     const values = await browser.storage.local.get(null);
     const current = values[key] as InstalledPlugin | undefined;
     if (!current) return;
@@ -102,7 +102,7 @@ export async function removePlugin(plugin: InstalledPluginInfo): Promise<void> {
 }
 
 async function updateInstalledPlugin(plugin: InstalledPluginInfo, update: () => Promise<void>): Promise<void> {
-  await navigator.locks.request(lock, async () => {
+  await navigator.locks.request(pluginLock, async () => {
     const key = installedKey(plugin.metadata.id);
     const current = (await browser.storage.local.get(key))[key] as InstalledPlugin | undefined;
     if (current?.revision !== plugin.revision) throw new Error(`"${plugin.metadata.id}" changed. Try again with the current version.`);
@@ -120,7 +120,7 @@ export function setInstalledSetting(plugin: InstalledPluginInfo, key: string, va
 }
 
 export function reportInstalledError(id: string, revision: string, message: string) {
-  return navigator.locks.request(lock, async () => {
+  return navigator.locks.request(pluginLock, async () => {
     const key = installedKey(id);
     const current = (await browser.storage.local.get(key))[key] as InstalledPlugin | undefined;
     if (current?.revision !== revision) return;

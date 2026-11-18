@@ -1,7 +1,7 @@
 import { browser } from 'wxt/browser';
-import { installedKey, isInstalledKey, pluginErrorKey } from '@/plugin-engine/installed';
+import { installedKey, isInstalledKey, pluginErrorKey, pluginLock } from '@/plugin-engine/installed';
 import { enabledKey, settingKey } from '@/plugin-engine/storage';
-import { installedThemes, installedThemesKey } from '@/theme-engine/installed';
+import { installedThemes, installedThemesKey, themeLock } from '@/theme-engine/installed';
 import { selectedThemeKey } from '@/theme-engine/storage';
 import { themeSettingsKey } from '@/theme-engine/settings';
 import { themeApplicationErrorKey } from '@/theme-engine/diagnostics';
@@ -10,7 +10,17 @@ import type { ValidatedBackup } from './validate';
 export type RestoreMode = 'merge' | 'replace';
 
 export async function restoreBackup(backup: ValidatedBackup, mode: RestoreMode, enableImported: boolean): Promise<void> {
-  const previous = await browser.storage.local.get(null);
+  await withModuleLocks(async () => {
+    const previous = await browser.storage.local.get(null);
+    await browser.storage.local.set(restoreChanges(previous, backup, mode, enableImported));
+  });
+}
+
+export async function withModuleLocks(action: () => Promise<void>): Promise<void> {
+  await navigator.locks.request(pluginLock, () => navigator.locks.request(themeLock, action));
+}
+
+function restoreChanges(previous: Readonly<Record<string, unknown>>, backup: ValidatedBackup, mode: RestoreMode, enableImported: boolean) {
   const replace = mode === 'replace';
   const next: Record<string, unknown> = {
     [selectedThemeKey]: backup.preferences.selectedTheme,
@@ -44,5 +54,5 @@ export async function restoreBackup(backup: ValidatedBackup, mode: RestoreMode, 
   }
   next[installedThemesKey] = [...themes.values()];
   next[themeSettingsKey] = settings;
-  await browser.storage.local.set(next);
+  return next;
 }
