@@ -1,37 +1,6 @@
 // @ts-check
 
-const sidebar = [
-  `:is(ytd-guide-entry-renderer, ytd-mini-guide-entry-renderer, ytm-pivot-bar-item-renderer):has(
-    a[title="Shorts"], a[href="/shorts"], a[href^="/shorts/"], [aria-label="Shorts"]
-  )`,
-  ':is(ytd-mini-guide-entry-renderer, ytm-pivot-bar-item-renderer):is([title="Shorts"], [aria-label="Shorts"], [pivot-identifier="pivot-shorts"])',
-];
-
-const content = [
-  'ytd-reel-shelf-renderer',
-  'ytm-reel-shelf-renderer',
-  'ytd-rich-shelf-renderer[is-shorts]',
-  'grid-shelf-view-model:has(.shortsLockupViewModelHost)',
-  'ytm-shorts-lockup-view-model',
-  'ytm-shorts-lockup-view-model-v2',
-  'ytd-rich-section-renderer:has(ytd-rich-shelf-renderer[is-shorts], .shortsLockupViewModelHost)',
-  `:is(ytd-rich-item-renderer, ytd-video-renderer, ytd-grid-video-renderer, ytd-compact-video-renderer,
-      yt-lockup-view-model, ytm-video-with-context-renderer, ytm-compact-video-renderer):has(
-    a[href^="/shorts/"], [overlay-style="SHORTS"]
-  )`,
-];
-
-/** @param {string} pathname */
-function surface(pathname) {
-  if (pathname === '/') return 'homepage';
-  if (pathname === '/results') return 'search';
-  if (pathname === '/feed/subscriptions') return 'subscriptions';
-  if (/^\/(?:@|channel\/|c\/|user\/)/.test(pathname)) return 'channel';
-  if (pathname.startsWith('/hashtag/')) return 'hashtags';
-  if (pathname === '/watch') return 'description';
-}
-
-/** @type {import('./index').Plugin} */
+/** @type {import('../plugin-engine').Plugin} */
 const plugin = {
   id: 'hide-shorts',
   name: 'Hide Shorts',
@@ -76,5 +45,36 @@ const plugin = {
     };
   },
 };
+
+const sidebar = [
+  `:is(ytd-guide-entry-renderer, ytd-mini-guide-entry-renderer, ytm-pivot-bar-item-renderer):has(
+    a[title="Shorts"], a[href="/shorts"], a[href^="/shorts/"], [aria-label="Shorts"]
+  )`,
+  ':is(ytd-mini-guide-entry-renderer, ytm-pivot-bar-item-renderer):is([title="Shorts"], [aria-label="Shorts"], [pivot-identifier="pivot-shorts"])',
+];
+
+const content = [
+  'ytd-reel-shelf-renderer',
+  'ytm-reel-shelf-renderer',
+  'ytd-rich-shelf-renderer[is-shorts]',
+  'grid-shelf-view-model:has(.shortsLockupViewModelHost)',
+  'ytm-shorts-lockup-view-model',
+  'ytm-shorts-lockup-view-model-v2',
+  'ytd-rich-section-renderer:has(ytd-rich-shelf-renderer[is-shorts], .shortsLockupViewModelHost)',
+  `:is(ytd-rich-item-renderer, ytd-video-renderer, ytd-grid-video-renderer, ytd-compact-video-renderer,
+      yt-lockup-view-model, ytm-video-with-context-renderer, ytm-compact-video-renderer):has(
+    a[href^="/shorts/"], [overlay-style="SHORTS"]
+  )`,
+];
+
+/** @param {string} pathname */
+function surface(pathname) {
+  if (pathname === '/') return 'homepage';
+  if (pathname === '/results') return 'search';
+  if (pathname === '/feed/subscriptions') return 'subscriptions';
+  if (/^\/(?:@|channel\/|c\/|user\/)/.test(pathname)) return 'channel';
+  if (pathname.startsWith('/hashtag/')) return 'hashtags';
+  if (pathname === '/watch') return 'description';
+}
 
 export default plugin;

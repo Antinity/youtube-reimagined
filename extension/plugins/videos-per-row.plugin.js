@@ -6,19 +6,7 @@ const search = 'Search results';
 const watch = 'Watch page';
 const filters = 'Filters and visibility';
 
-const shortsShelf = 'grid-shelf-view-model:has(.shortsLockupViewModelHost, a[href^="/shorts/"])';
-const shortsCards = ':is(ytd-rich-item-renderer, ytd-video-renderer, ytd-grid-video-renderer, ytd-compact-video-renderer, yt-lockup-view-model):has(a[href^="/shorts/"], [overlay-style="SHORTS"])';
-const entry = ':is(ytd-rich-item-renderer, ytd-grid-video-renderer, ytd-video-renderer, ytd-compact-video-renderer, yt-lockup-view-model)';
-const progress = 'yt-thumbnail-overlay-progress-bar-view-model';
-const watched = `${entry}:has(${progress}):not(${entry} ${entry})`;
-const richGrid = 'ytd-rich-grid-renderer:not([is-shorts-grid]) > #contents';
-const richRows = `${richGrid} > ytd-rich-grid-row`;
-const searchPage = 'ytd-search';
-const watchPage = 'ytd-watch-flexy';
-const watchLockup = `${watchPage} #related :is(.ytLockupViewModelHorizontal, .yt-lockup-view-model--horizontal)`;
-const hide = '{ display: none !important; }';
-
-/** @type {import('./index').Plugin} */
+/** @type {import('../plugin-engine').Plugin} */
 const plugin = {
   id: 'videos-per-row',
   name: 'Videos Per Row',
@@ -76,7 +64,7 @@ const plugin = {
     const style = document.createElement('style');
     onCleanup(() => style.remove());
 
-    /** @param {import('./index').PluginSettings} values */
+    /** @param {import('../plugin-engine').PluginSettings} values */
     function update(values) {
       const rules = [];
 
@@ -240,5 +228,17 @@ const plugin = {
     return { onSettingsChange: update };
   },
 };
+
+const shortsShelf = 'grid-shelf-view-model:has(.shortsLockupViewModelHost, a[href^="/shorts/"])';
+const shortsCards = ':is(ytd-rich-item-renderer, ytd-video-renderer, ytd-grid-video-renderer, ytd-compact-video-renderer, yt-lockup-view-model):has(a[href^="/shorts/"], [overlay-style="SHORTS"])';
+const entry = ':is(ytd-rich-item-renderer, ytd-grid-video-renderer, ytd-video-renderer, ytd-compact-video-renderer, yt-lockup-view-model)';
+const progress = 'yt-thumbnail-overlay-progress-bar-view-model';
+const watched = `${entry}:has(${progress}):not(${entry} ${entry})`;
+const richGrid = 'ytd-rich-grid-renderer:not([is-shorts-grid]) > #contents';
+const richRows = `${richGrid} > ytd-rich-grid-row`;
+const searchPage = 'ytd-search';
+const watchPage = 'ytd-watch-flexy';
+const watchLockup = `${watchPage} #related :is(.ytLockupViewModelHorizontal, .yt-lockup-view-model--horizontal)`;
+const hide = '{ display: none !important; }';
 
 export default plugin;

@@ -1,6 +1,6 @@
-import { discoverPlugins } from '@/plugins';
-import { createPluginRuntime } from '@/plugins/runtime';
-import { enabledKey, pluginStorageKeys, readPluginSettings, watchPluginStorage } from '@/plugins/storage';
+import { discoverPlugins } from '@/plugin-engine';
+import { createPluginRuntime } from '@/plugin-engine/runtime';
+import { enabledKey, pluginStorageKeys, readPluginSettings, watchPluginStorage } from '@/plugin-engine/storage';
 import { youtubeMatches } from '@/youtube';
 
 export default defineContentScript({

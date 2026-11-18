@@ -34,7 +34,7 @@ export interface PluginHooks {
   onSettingsChange?(settings: PluginSettings): void;
 }
 
-const modules = import.meta.glob<{ default: Plugin }>('./*.plugin.js');
+const modules = import.meta.glob<{ default: Plugin }>('../plugins/*.js');
 let discovery: Promise<Plugin[]> | undefined;
 
 export function discoverPlugins(): Promise<Plugin[]> {

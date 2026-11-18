@@ -8,11 +8,11 @@ export default defineConfig({
   hooks: {
     'server:started'({ config }, server) {
       const pluginsDir = resolve(config.root, 'plugins');
-      const registry = resolve(pluginsDir, 'index.ts');
+      const registry = resolve(config.root, 'plugin-engine/index.ts');
 
       server.watcher.on('all', (event, file) => {
         if (event !== 'add' && event !== 'change' && event !== 'unlink') return;
-        if (dirname(resolve(file)) !== pluginsDir || !file.endsWith('.plugin.js')) return;
+        if (dirname(resolve(file)) !== pluginsDir || !file.endsWith('.js')) return;
         if (event !== 'change') {
           // A new glob match is absent from the previous content-script bundle's dependencies.
           server.watcher.emit('all', 'change', registry);

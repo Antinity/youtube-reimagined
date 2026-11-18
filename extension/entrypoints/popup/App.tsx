@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { discoverPlugins, type Plugin, type PluginOption, type PluginOptionValue } from '@/plugins';
+import { discoverPlugins, type Plugin, type PluginOption, type PluginOptionValue } from '@/plugin-engine';
 import {
   enabledKey, pluginStorageKeys, readPluginSettings, setPluginEnabled, setPluginSetting, watchPluginStorage,
-} from '@/plugins/storage';
+} from '@/plugin-engine/storage';
 
 function Checkbox({ checked, label, onSave }: {
   checked: boolean;
