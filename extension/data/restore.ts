@@ -7,6 +7,7 @@ import { themeSettingsKey } from '@/theme-engine/settings';
 import { themeApplicationErrorKey } from '@/theme-engine/diagnostics';
 import type { ValidatedBackup } from './validate';
 import { refreshUserScriptsMessage, userScriptAccess } from '@/plugin-engine/user-scripts';
+import { appearanceKey, pauseModsKey } from './preferences';
 
 export type RestoreMode = 'merge' | 'replace';
 
@@ -37,6 +38,9 @@ function restoreChanges(previous: Readonly<Record<string, unknown>>, backup: Val
     [selectedThemeKey]: backup.preferences.selectedTheme,
     [themeApplicationErrorKey]: null,
   };
+  const { appearance, pauseMods } = backup.preferences;
+  if (replace || appearance !== undefined) next[appearanceKey] = appearance ?? 'system';
+  if (replace || pauseMods !== undefined) next[pauseModsKey] = pauseMods ?? false;
   // Tombstones let Chrome publish replacement and deletion in a single storage transaction.
   if (replace) {
     for (const key of Object.keys(previous)) {

@@ -3,13 +3,14 @@ import { installedThemes } from './installed';
 import { createThemeRuntime } from './runtime';
 import { readThemeSettings } from './settings';
 import { reportThemeApplicationError, selectedThemeId, watchThemeStorage } from './storage';
+import { pauseModsKey } from '@/data/preferences';
 
 export function syncActiveTheme(doc: Document, isValid: () => boolean) {
   const bundled = discoverThemes();
   const runtime = createThemeRuntime(doc);
   const unwatch = watchThemeStorage((values) => {
     if (!isValid()) return;
-    const id = selectedThemeId(values);
+    const id = values[pauseModsKey] === true ? null : selectedThemeId(values);
     const theme = bundled.find(({ metadata }) => metadata.id === id)
       ?? installedThemes(values).find(({ metadata }) => metadata.id === id);
     try {

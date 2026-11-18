@@ -7,12 +7,13 @@ import { installedThemes } from '@/theme-engine/installed';
 import type { Theme } from '@/theme-engine/schema';
 import { readThemeSettings } from '@/theme-engine/settings';
 import { selectedThemeId } from '@/theme-engine/storage';
+import { pauseModsKey, readAppearance, type Appearance } from './preferences';
 
 type PluginFiles = Pick<InstalledPlugin, 'name' | 'source' | 'metadata'>;
 
 export interface Backup {
   version: 1;
-  preferences: { selectedTheme: string | null };
+  preferences: { selectedTheme: string | null; appearance?: Appearance; pauseMods?: boolean };
   plugins: {
     id: string;
     enabled: boolean;
@@ -41,7 +42,7 @@ export async function createBackup(): Promise<Backup> {
   const themeEntry = (theme: Theme) => ({ id: theme.metadata.id, settings: readThemeSettings(theme, values) });
   return {
     version: 1,
-    preferences: { selectedTheme: selectedThemeId(values) },
+    preferences: { selectedTheme: selectedThemeId(values), appearance: readAppearance(values), pauseMods: values[pauseModsKey] === true },
     plugins: [...plugins.map((plugin) => {
       const saved = userPlugins.find(({ metadata }) => metadata.id === plugin.id);
       return { ...pluginEntry(plugin), ...(saved ? { retained: pluginFiles(saved) } : {}) };

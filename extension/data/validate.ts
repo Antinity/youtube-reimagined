@@ -9,6 +9,7 @@ import { validateThemeImport } from '@/theme-engine/import';
 import { isValidThemeValue } from '@/theme-engine/settings';
 import type { ThemePreview } from '@/theme-engine/preview';
 import type { Backup } from './backup';
+import { isAppearance } from './preferences';
 
 export type ValidatedBackup = Backup & { pluginSources: Map<string, PluginImportCandidate> };
 
@@ -72,6 +73,9 @@ export async function validateBackup(source: string): Promise<ValidatedBackup> {
   if (backup.version !== 1) throw new Error('version: expected backup schema version 1.');
   const preferences = record(backup.preferences, 'preferences');
   const selected = preferences.selectedTheme;
+  const { appearance, pauseMods } = preferences;
+  if (appearance !== undefined && !isAppearance(appearance)) throw new Error('preferences.appearance: expected light, dark, or system.');
+  if (pauseMods !== undefined && typeof pauseMods !== 'boolean') throw new Error('preferences.pauseMods: expected true or false.');
   if (selected !== null && !isPluginId(selected)) throw new Error('preferences.selectedTheme: expected a theme ID or null.');
   const [bundledPlugins, bundledThemes] = await Promise.all([discoverPlugins(), discoverThemes()]);
   const pluginSources = new Map<string, PluginImportCandidate>();
@@ -156,5 +160,5 @@ export async function validateBackup(source: string): Promise<ValidatedBackup> {
   if (selected !== null && !themeIds.has(selected) && !bundledThemes.some(({ metadata }) => metadata.id === selected)) {
     throw new Error('preferences.selectedTheme: the selected theme is missing from the backup and bundled themes.');
   }
-  return { version: 1, preferences: { selectedTheme: selected }, plugins, themes, pluginSources };
+  return { version: 1, preferences: { selectedTheme: selected, appearance, pauseMods }, plugins, themes, pluginSources };
 }

@@ -7,6 +7,7 @@ import { selectedThemeId, selectedThemeKey } from '@/theme-engine/storage';
 import { themeSettingsKey } from '@/theme-engine/settings';
 import { themeApplicationErrorKey } from '@/theme-engine/diagnostics';
 import { withModuleLocks } from './restore';
+import { appearanceKey, pauseModsKey } from './preferences';
 
 export async function resetModuleSettings(kind: 'plugin' | 'theme', id: string): Promise<void> {
   if (kind === 'plugin') {
@@ -31,7 +32,8 @@ export async function resetPreferences(): Promise<void> {
   await withModuleLocks(async () => {
     const values = await browser.storage.local.get(null);
     await browser.storage.local.remove(Object.keys(values).filter((key) => key.startsWith('plugin:')
-      || key.startsWith('user-plugin-error:') || [selectedThemeKey, themeSettingsKey, themeApplicationErrorKey].includes(key)));
+      || key.startsWith('user-plugin-error:')
+      || [selectedThemeKey, themeSettingsKey, themeApplicationErrorKey, appearanceKey, pauseModsKey].includes(key)));
   });
 }
 

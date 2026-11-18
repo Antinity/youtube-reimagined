@@ -3,6 +3,7 @@ import { discoverPlugins } from '@/plugin-engine';
 import { createPluginRuntime, listenForPluginNavigation } from '@/plugin-engine/runtime';
 import { enabledKey, pluginStorageKeys, readPluginSettings, watchPluginStorage } from '@/plugin-engine/storage';
 import { youtubeMatches } from '@/youtube';
+import { pauseModsKey } from '@/data/preferences';
 
 export default defineContentScript({
   matches: youtubeMatches,
@@ -17,10 +18,10 @@ export default defineContentScript({
     ctx.addEventListener(window, 'wxt:locationchange', () => {
       queueMicrotask(() => { if (ctx.isValid) runtime.navigate(); });
     });
-    const unwatch = watchPluginStorage(plugins.flatMap(pluginStorageKeys), (values) => {
+    const unwatch = watchPluginStorage([pauseModsKey, ...plugins.flatMap(pluginStorageKeys)], (values) => {
       if (ctx.isInvalid) return;
       for (const plugin of plugins) {
-        runtime.update(plugin, values[enabledKey(plugin.id)] === true, readPluginSettings(plugin, values));
+        runtime.update(plugin, values[pauseModsKey] !== true && values[enabledKey(plugin.id)] === true, readPluginSettings(plugin, values));
       }
     }, (error) => console.error('Could not read plugin storage', error));
     ctx.onInvalidated(() => {

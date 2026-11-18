@@ -3,6 +3,7 @@ import { youtubeMatches } from '@/youtube';
 import { installedKey, isInstalledKey, reportInstalledError, type InstalledPlugin } from './installed';
 import { enabledKey, readPluginSettings } from './storage';
 import { discoverPlugins, type PluginSettings } from './index';
+import { pauseModsKey } from '@/data/preferences';
 
 const prefix = 'yr-plugin:';
 const adapter = '/user-plugin.js';
@@ -45,7 +46,7 @@ export function startUserScripts() {
   function updateSessions(values: Readonly<Record<string, unknown>>, allowed: boolean, bundled: Set<string>) {
     for (const [port, { id, revision, session }] of sessions) {
       const plugin = values[installedKey(id)] as InstalledPlugin | undefined;
-      const enabled = allowed && !bundled.has(id) && session === worldSession
+      const enabled = allowed && values[pauseModsKey] !== true && !bundled.has(id) && session === worldSession
         && plugin?.revision === revision && values[enabledKey(id)] === true;
       const message: UserPluginMessage = enabled ? { settings: readPluginSettings(plugin.metadata, values) } : { stop: true };
       if (!enabled) sessions.delete(port);
@@ -71,7 +72,7 @@ export function startUserScripts() {
     const session = worldSession;
     const plugins = Object.entries(values).filter(([key, value]) => isInstalledKey(key) && value)
       .map(([, plugin]) => plugin as InstalledPlugin)
-      .filter(({ metadata: { id } }) => !bundled.has(id) && values[enabledKey(id)] === true);
+      .filter(({ metadata: { id } }) => values[pauseModsKey] !== true && !bundled.has(id) && values[enabledKey(id)] === true);
     const scripts = plugins.map((plugin) => registration(plugin, session));
     const present = await browser.userScripts.getScripts();
     const desired = new Set(scripts.map(({ id }) => id));
@@ -148,7 +149,7 @@ export function startUserScripts() {
 
   browser.storage.local.onChanged.addListener((changes) => {
     const keys = Object.keys(changes);
-    if (keys.some((key) => isInstalledKey(key) || /^plugin:[^:]+:enabled$/.test(key))) schedule(true);
+    if (keys.some((key) => key === pauseModsKey || isInstalledKey(key) || /^plugin:[^:]+:enabled$/.test(key))) schedule(true);
     else if (sessions.size && keys.some((key) => /^plugin:[^:]+:setting:/.test(key))) schedule(false);
   });
   browser.runtime.onStartup.addListener(() => schedule(true));

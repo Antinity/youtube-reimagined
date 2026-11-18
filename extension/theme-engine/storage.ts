@@ -6,6 +6,7 @@ import { optionEntries, type PluginOptionValue } from '../plugin-engine/schema';
 import type { Theme } from './schema';
 import { isValidThemeValue, themeSettingsKey } from './settings';
 import { themeApplicationErrorKey } from './diagnostics';
+import { pauseModsKey } from '@/data/preferences';
 
 export const selectedThemeKey = 'theme:selected';
 
@@ -74,7 +75,7 @@ export async function reportThemeApplicationError(id: string, error: unknown): P
 
 export function watchThemeStorage(onUpdate: (values: Readonly<Record<string, unknown>>) => void, onError: (error: unknown) => void,
   includeDiagnostics = false) {
-  const keys = [selectedThemeKey, themeSettingsKey, installedThemesKey];
+  const keys = [selectedThemeKey, themeSettingsKey, installedThemesKey, pauseModsKey];
   if (includeDiagnostics) keys.push(themeApplicationErrorKey);
   return watchPluginStorage(keys, onUpdate, onError);
 }
