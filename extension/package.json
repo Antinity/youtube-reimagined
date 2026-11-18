@@ -15,6 +15,7 @@
     "postinstall": "wxt prepare"
   },
   "dependencies": {
+    "@zip.js/zip.js": "^2.25.0",
     "acorn": "^8.19.0",
     "css-tree": "^3.2.1",
     "jsonc-parser": "^3.3.1",

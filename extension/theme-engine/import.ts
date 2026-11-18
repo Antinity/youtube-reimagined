@@ -12,6 +12,13 @@ const closing = new Map([
 export function validateThemeImport(filename: string, source: string) {
   if (!/\.css$/i.test(filename)) throw new Error('Choose one .css or .theme.css file.');
   const theme = readTheme(source);
+  validateThemeCss(theme.css, source);
+  return theme;
+}
+
+export function validateThemeCss(css: string, source = css) {
+  const theme = { css };
+  if (!css.trim()) throw new ThemeValidationError(source, 0, 'Expected a non-empty CSS stylesheet.');
   const cssStart = source.length - theme.css.length;
   const invalid = (offset: number, message: string): never => {
     throw new ThemeValidationError(source, cssStart + offset, message);
@@ -96,5 +103,4 @@ export function validateThemeImport(filename: string, source: string) {
     }
     if (node.type === 'Raw') invalid(at, 'Unsupported or malformed CSS. Use standard CSS syntax.');
   });
-  return theme;
 }

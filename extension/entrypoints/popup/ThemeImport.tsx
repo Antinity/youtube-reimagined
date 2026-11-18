@@ -11,7 +11,7 @@ export default function ThemeImport() {
   const request = useRef(0);
 
   return <div>
-    <label>Import a CSS theme <input type="file" accept=".css" disabled={busy} onChange={async (event) => {
+    <label>Import a theme <input type="file" accept=".zip,.css" disabled={busy} onChange={async (event) => {
       const file = event.currentTarget.files?.[0];
       event.currentTarget.value = '';
       if (!file) return;
@@ -21,8 +21,9 @@ export default function ThemeImport() {
       setMessage('');
       setError('');
       try {
-        const [source, { validateThemeImport }] = await Promise.all([file.text(), import('@/theme-engine/import')]);
-        if (request.current === current) setCandidate(validateThemeImport(file.name, source));
+        const theme = /\.zip$/i.test(file.name) ? await (await import('@/theme-engine/archive')).readThemeZip(file)
+          : (await import('@/theme-engine/import')).validateThemeImport(file.name, await file.text());
+        if (request.current === current) setCandidate(theme);
       } catch (cause) {
         if (request.current === current) setError(`Validation error in ${file.name}: ${cause instanceof Error ? cause.message : String(cause)}`);
       }
