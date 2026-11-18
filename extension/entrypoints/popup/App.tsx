@@ -10,6 +10,7 @@ import {
 } from '@/plugin-engine/storage';
 import { refreshUserScriptsMessage, userScriptAccess } from '@/plugin-engine/user-scripts';
 import { AddPage } from './AddPage';
+import { AboutPage } from './AboutPage';
 import { BrowsePage } from './BrowsePage';
 import { appearanceKey, pauseModsKey, readAppearance } from '@/data/preferences';
 import ThemeManagement from './ThemeManagement';
@@ -195,8 +196,6 @@ export default function App() {
     {page === 'browse' && <BrowsePage />}
     {page === 'add' && <AddPage key={transfer ?? 'add'} modsOnly={transfer === 'mods'} openSettings={() => openTransfer('settings')} />}
     {page === 'settings' && <Settings values={preferences} focusImport={transfer === 'settings'} openMods={() => openTransfer('mods')} />}
-    {page === 'about' && <section className="page settings-page"><h1>About</h1>
-      <a href="https://github.com/Antinity/youtube-reimagined" target="_blank" rel="noreferrer">GitHub</a>
-    </section>}
+    {page === 'about' && <AboutPage />}
   </Shell>;
 }
