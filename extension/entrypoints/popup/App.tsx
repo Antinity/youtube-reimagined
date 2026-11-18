@@ -1,13 +1,20 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { discoverPlugins, type Plugin, type PluginOption, type PluginOptionValue } from '@/plugin-engine';
+import { browser } from 'wxt/browser';
+import { discoverPlugins, type Plugin, type PluginMetadata, type PluginOption, type PluginOptionValue } from '@/plugin-engine';
+import {
+  pluginErrorKey, removePlugin, setInstalledEnabled, setInstalledSetting, watchInstalledPlugins,
+  type InstalledPluginError, type InstalledPluginInfo,
+} from '@/plugin-engine/installed';
 import {
   enabledKey, pluginStorageKeys, readPluginSettings, setPluginEnabled, setPluginSetting, watchPluginStorage,
 } from '@/plugin-engine/storage';
+import { refreshUserScriptsMessage, userScriptAccess } from '@/plugin-engine/user-scripts';
 import PluginImport from './PluginImport';
 
-function Checkbox({ checked, label, onSave }: {
+function Checkbox({ checked, label, disabled, onSave }: {
   checked: boolean;
   label?: string;
+  disabled?: boolean;
   onSave: (checked: boolean) => Promise<boolean>;
 }) {
   const input = useRef<HTMLInputElement>(null);
@@ -17,7 +24,7 @@ function Checkbox({ checked, label, onSave }: {
     if (input.current) input.current.checked = checked;
   }, [checked]);
 
-  return <input ref={input} type="checkbox" aria-label={label} defaultChecked={checked}
+  return <input ref={input} type="checkbox" aria-label={label} defaultChecked={checked} disabled={disabled}
     onChange={async ({ currentTarget }) => {
       const write = ++latestWrite.current;
       if (!await onSave(currentTarget.checked) && write === latestWrite.current) {
@@ -79,20 +86,15 @@ function OptionInput({ option, value, onSave }: {
 
 export default function App() {
   const [plugins, setPlugins] = useState<Plugin[]>();
+  const [installed, setInstalled] = useState<InstalledPluginInfo[]>();
   const [values, setValues] = useState<Readonly<Record<string, unknown>>>();
   const [error, setError] = useState('');
+  const [accessError, setAccessError] = useState(userScriptAccess);
 
   useEffect(() => {
     let cancelled = false;
-    let unwatch: (() => void) | undefined;
-
     void discoverPlugins().then((found) => {
-      if (cancelled) return;
-      setPlugins(found);
-      unwatch = watchPluginStorage(found.flatMap(pluginStorageKeys), setValues, (cause) => {
-        console.error(cause);
-        setError('Could not read plugin storage.');
-      });
+      if (!cancelled) setPlugins(found);
     }).catch((cause) => {
       if (cancelled) return;
       console.error(cause);
@@ -101,42 +103,79 @@ export default function App() {
 
     return () => {
       cancelled = true;
-      unwatch?.();
     };
   }, []);
 
-  async function saveSetting(plugin: Plugin, key: string, option: PluginOption, value: PluginOptionValue) {
+  useEffect(() => watchInstalledPlugins(setInstalled, (cause) => {
+    setError(`Could not read installed plugins. ${String(cause)}`);
+  }), []);
+
+  useEffect(() => {
+    if (!plugins || !installed) return;
+    return watchPluginStorage([
+      ...plugins.flatMap(pluginStorageKeys),
+      ...installed.flatMap(({ metadata }) => [...pluginStorageKeys(metadata), pluginErrorKey(metadata.id)]),
+    ], setValues, (cause) => setError(`Could not read plugin storage. ${String(cause)}`));
+  }, [plugins, installed]);
+
+  function checkAccess() {
+    setAccessError(userScriptAccess());
+    void browser.runtime.sendMessage(refreshUserScriptsMessage).catch((cause) => setError(String(cause)));
+  }
+
+  const hasInstalled = Boolean(installed?.length);
+  useEffect(() => {
+    if (!hasInstalled) return;
+    checkAccess();
+    window.addEventListener('focus', checkAccess);
+    return () => window.removeEventListener('focus', checkAccess);
+  }, [hasInstalled]);
+
+  async function saveSetting(plugin: PluginMetadata, thirdParty: InstalledPluginInfo | undefined,
+    key: string, option: PluginOption, value: PluginOptionValue) {
     setError('');
     try {
-      await setPluginSetting(plugin, key, value);
+      if (thirdParty) await setInstalledSetting(thirdParty, key, value);
+      else await setPluginSetting(plugin, key, value);
       return true;
     } catch (cause) {
       console.error(cause);
-      setError(cause instanceof RangeError ? `Invalid value for ${option.label}.` : `Could not save ${option.label}.`);
+      setError(cause instanceof RangeError ? `Invalid value for ${option.label}.` : `Could not save ${option.label}. ${String(cause)}`);
       return false;
     }
   }
 
-  async function saveEnabled(plugin: Plugin, enabled: boolean) {
+  async function saveEnabled(plugin: PluginMetadata, thirdParty: InstalledPluginInfo | undefined, enabled: boolean) {
     setError('');
     try {
-      await setPluginEnabled(plugin.id, enabled);
+      if (thirdParty) await setInstalledEnabled(thirdParty, enabled);
+      else await setPluginEnabled(plugin.id, enabled);
       return true;
     } catch (cause) {
       console.error(cause);
-      setError(`Could not update ${plugin.name}.`);
+      setError(`Could not update ${plugin.name}. ${String(cause)}`);
       return false;
     }
   }
+
+  const entries: { plugin: PluginMetadata; thirdParty?: InstalledPluginInfo }[] | undefined = plugins && installed && [
+    ...plugins.map((plugin) => ({ plugin })),
+    ...installed.map((thirdParty) => ({ plugin: thirdParty.metadata, thirdParty })),
+  ];
 
   return (
     <main style={{ width: 360 }}>
       <h1>Plugins</h1>
       <PluginImport bundledIds={plugins?.map(({ id }) => id)} />
       {error && <p role="alert">{error}</p>}
-      {(!plugins || !values) && !error && <p>Loading plugins…</p>}
-      {plugins?.length === 0 && <p>No plugins found.</p>}
-      {plugins && values && plugins.map((plugin) => {
+      {(!entries || !values) && !error && <p>Loading plugins…</p>}
+      {hasInstalled && accessError && <p>{accessError}{' '}
+        <button onClick={checkAccess}>Check access</button>
+      </p>}
+      {entries?.length === 0 && <p>No plugins found.</p>}
+      {entries && values && entries.map(({ plugin, thirdParty }) => {
+        const enabled = values[enabledKey(plugin.id)] === true;
+        const executionError = thirdParty ? values[pluginErrorKey(plugin.id)] as InstalledPluginError | undefined : undefined;
         const settings = readPluginSettings(plugin, values);
         const groups = new Map<string, [string, PluginOption][]>();
         for (const entry of Object.entries(plugin.options ?? {})) {
@@ -148,12 +187,25 @@ export default function App() {
           <section key={plugin.id}>
             <h2>{plugin.name}</h2>
             <p>{plugin.description}</p>
+            {thirdParty && <p>Third-party · Version {plugin.version}{plugin.authors.length ? ` · ${plugin.authors.join(', ')}` : ''}
+              {plugin.contributors?.length ? ` · Contributors: ${plugin.contributors.join(', ')}` : ''}
+            </p>}
+            {executionError && executionError.revision === thirdParty?.revision &&
+              <p role="alert" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{executionError.message}</p>}
             <label>
               <Checkbox label={`Enable ${plugin.name}`}
-                checked={values[enabledKey(plugin.id)] === true}
-                onSave={(enabled) => saveEnabled(plugin, enabled)} />
+                checked={enabled} disabled={Boolean(thirdParty && accessError && !enabled)}
+                onSave={(next) => saveEnabled(plugin, thirdParty, next)} />
               Enabled
             </label>
+            {thirdParty && <> <button aria-label={`Remove ${plugin.name}`} onClick={async () => {
+              setError('');
+              try {
+                await removePlugin(thirdParty);
+              } catch (cause) {
+                setError(String(cause));
+              }
+            }}>Remove</button></>}
             {groups.size > 0 && <details>
               <summary>{plugin.name} settings</summary>
               {[...groups].map(([group, options]) => {
@@ -164,7 +216,7 @@ export default function App() {
                       <label>{option.label} <OptionInput
                         key={option.type === 'number' || option.type === 'string' ? String(value) : undefined}
                         option={option} value={value}
-                        onSave={(next) => saveSetting(plugin, key, option, next)} /></label>
+                        onSave={(next) => saveSetting(plugin, thirdParty, key, option, next)} /></label>
                     </div>
                   );
                 });

@@ -16,9 +16,18 @@ interface Activation {
   settings: PluginSettings;
 }
 
-export function createPluginRuntime() {
+export function createPluginRuntime(reportError: (message: string, error: unknown) => void = console.error) {
   const active = new Map<RuntimePlugin, Activation>();
   let currentUrl = location.href;
+
+  function invoke(message: string, action: () => unknown) {
+    try {
+      const result = action();
+      if (result instanceof Promise) void result.catch((error) => reportError(message, error));
+    } catch (error) {
+      reportError(message, error);
+    }
+  }
 
   return {
     update(plugin: RuntimePlugin, enabled: boolean, settings: PluginSettings) {
@@ -31,33 +40,40 @@ export function createPluginRuntime() {
       if (existing) {
         if (Object.entries(settings).some(([key, value]) => !Object.is(value, existing.settings[key]))) {
           existing.settings = settings;
-          try {
-            existing.hooks?.onSettingsChange?.(settings);
-          } catch (error) {
-            console.error(`Could not notify plugin ${plugin.id} of settings changes`, error);
-          }
+          invoke(`Could not notify plugin ${plugin.id} of settings changes`, () => existing.hooks?.onSettingsChange?.(settings));
         }
         return;
       }
 
       const cleanups: (() => void)[] = [];
+      const cleanupError = `Could not clean up plugin ${plugin.id}`;
+      let disposed = false;
       const activation: Activation = {
         settings,
         cleanup() {
-          for (const cleanup of cleanups.splice(0).reverse()) {
-            try {
-              cleanup();
-            } catch (error) {
-              console.error(`Could not clean up plugin ${plugin.id}`, error);
-            }
-          }
+          disposed = true;
+          for (const cleanup of cleanups.splice(0).reverse()) invoke(cleanupError, cleanup);
         },
       };
       active.set(plugin, activation);
       try {
-        activation.hooks = plugin.activate({ settings, onCleanup: (cleanup) => { cleanups.push(cleanup); } });
+        const hooks = plugin.activate({ settings, onCleanup(cleanup) {
+          if (typeof cleanup !== 'function') throw new TypeError('onCleanup expects a function.');
+          if (disposed) invoke(cleanupError, cleanup);
+          else cleanups.push(cleanup);
+        } });
+        if (hooks instanceof Promise) {
+          void hooks.catch((error) => reportError(`Could not activate plugin ${plugin.id}`, error));
+          throw new TypeError('activate must return synchronously.');
+        }
+        if (hooks !== undefined && (hooks === null || typeof hooks !== 'object'
+          || (hooks.onNavigate !== undefined && typeof hooks.onNavigate !== 'function')
+          || (hooks.onSettingsChange !== undefined && typeof hooks.onSettingsChange !== 'function'))) {
+          throw new TypeError('activate must return an object with optional onNavigate and onSettingsChange functions, or return nothing.');
+        }
+        activation.hooks = hooks;
       } catch (error) {
-        console.error(`Could not activate plugin ${plugin.id}`, error);
+        reportError(`Could not activate plugin ${plugin.id}`, error);
         activation.cleanup();
       }
     },
@@ -65,11 +81,7 @@ export function createPluginRuntime() {
       if (currentUrl === location.href) return;
       currentUrl = location.href;
       for (const [plugin, activation] of active) {
-        try {
-          activation.hooks?.onNavigate?.(new URL(currentUrl));
-        } catch (error) {
-          console.error(`Could not notify plugin ${plugin.id} of navigation`, error);
-        }
+        invoke(`Could not notify plugin ${plugin.id} of navigation`, () => activation.hooks?.onNavigate?.(new URL(currentUrl)));
       }
     },
     dispose() {

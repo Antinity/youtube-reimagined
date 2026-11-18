@@ -1,18 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { validatePluginImport, type PluginImportCandidate } from '@/plugin-engine/import';
-import { DuplicatePluginError, installPlugin, listInstalledPlugins, removePlugin, type InstalledPlugin } from '@/plugin-engine/installed';
+import { DuplicatePluginError, installPlugin, type InstalledPluginInfo } from '@/plugin-engine/installed';
 
 export default function PluginImport({ bundledIds }: { bundledIds?: readonly string[] }) {
   const [selected, setSelected] = useState<PluginImportCandidate>();
-  const [installed, setInstalled] = useState<InstalledPlugin[]>([]);
-  const [replacement, setReplacement] = useState<InstalledPlugin>();
+  const [replacement, setReplacement] = useState<InstalledPluginInfo>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const latestFile = useRef(0);
-
-  useEffect(() => {
-    void listInstalledPlugins().then(setInstalled).catch((cause) => setError(String(cause)));
-  }, []);
 
   async function install() {
     if (!selected || !bundledIds) return;
@@ -22,7 +17,6 @@ export default function PluginImport({ bundledIds }: { bundledIds?: readonly str
       await installPlugin(selected, bundledIds, replacement?.revision);
       setSelected(undefined);
       setReplacement(undefined);
-      setInstalled(await listInstalledPlugins());
     } catch (cause) {
       if (cause instanceof DuplicatePluginError) setReplacement(cause.current);
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -58,20 +52,5 @@ export default function PluginImport({ bundledIds }: { bundledIds?: readonly str
       </button>
     </p>}
     {error && <p role="alert">{error}</p>}
-    {installed.map((plugin) => <p key={plugin.metadata.id}>
-      {plugin.metadata.name} (third-party){' '}
-      <button disabled={busy} onClick={async () => {
-        setError('');
-        setBusy(true);
-        try {
-          await removePlugin(plugin);
-          setInstalled(await listInstalledPlugins());
-        } catch (cause) {
-          setError(String(cause));
-        } finally {
-          setBusy(false);
-        }
-      }}>Remove</button>
-    </p>)}
   </section>;
 }

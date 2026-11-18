@@ -9,9 +9,7 @@ export default defineUnlistedScript(() => {
   const world = globalThis as typeof globalThis & { __yrAttachPlugin?: Attach };
   if (world.__yrAttachPlugin) return;
 
-  const runtime = createPluginRuntime();
   const attached = new Map<string, () => void>();
-  listenForPluginNavigation(runtime.navigate);
 
   world.__yrAttachPlugin = (id, portName, factory) => {
     if (attached.has(portName)) return;
@@ -24,11 +22,23 @@ export default defineUnlistedScript(() => {
         return factory().activate(context);
       },
     };
+    const lifetime = new AbortController();
+    const runtime = createPluginRuntime((message, error) => {
+      console.error(message, error);
+      try {
+        const detail = error instanceof Error ? error.stack ?? error.message : String(error);
+        port?.postMessage({ error: `${message}\n${detail}`.slice(0, 4000) });
+      } catch {
+        // The extension may have disconnected while handling an error.
+      }
+    });
+    listenForPluginNavigation(runtime.navigate, lifetime.signal);
 
     function stop() {
       stopped = true;
       attached.delete(portName);
-      runtime.update(plugin, false, {});
+      lifetime.abort();
+      runtime.dispose();
       port?.disconnect();
     }
 

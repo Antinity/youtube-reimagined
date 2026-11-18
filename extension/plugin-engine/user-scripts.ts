@@ -1,12 +1,13 @@
 import { browser, type Browser } from 'wxt/browser';
 import { youtubeMatches } from '@/youtube';
-import { installedKey, isInstalledKey, type InstalledPlugin } from './installed';
+import { installedKey, isInstalledKey, reportInstalledError, type InstalledPlugin } from './installed';
 import { enabledKey, readPluginSettings } from './storage';
 import type { PluginSettings } from './index';
 
 const prefix = 'yr-plugin:';
 const adapter = '/user-plugin.js';
 const sessionKey = 'user-plugin-world-session';
+export const refreshUserScriptsMessage = 'refresh-user-scripts';
 
 export type UserPluginMessage = { settings: PluginSettings } | { stop: true };
 
@@ -25,7 +26,7 @@ export function userScriptAccess(): string | undefined {
 function registration(plugin: InstalledPlugin, session: string): Browser.userScripts.RegisteredUserScript {
   const { metadata, revision } = plugin;
   const name = `${prefix}${metadata.id}:${revision}:${session}`;
-  const code = `globalThis.__yrAttachPlugin(${JSON.stringify(metadata.id)}, ${JSON.stringify(name)}, ${plugin.factory});`;
+  const code = `globalThis.__yrAttachPlugin(${JSON.stringify(metadata.id)}, ${JSON.stringify(name)}, ${plugin.factory});\n//# sourceURL=yt-reimagined-plugin-${metadata.id}.js`;
   return {
     id: `${prefix}${session}:${revision}`,
     matches: youtubeMatches,
@@ -40,10 +41,10 @@ export function startUserScripts() {
   let worldSession: string | undefined;
   const sessions = new Map<Browser.runtime.Port, { id: string; revision: string; session: string }>();
 
-  function updateSessions(values: Readonly<Record<string, unknown>>) {
+  function updateSessions(values: Readonly<Record<string, unknown>>, allowed: boolean) {
     for (const [port, { id, revision, session }] of sessions) {
       const plugin = values[installedKey(id)] as InstalledPlugin | undefined;
-      const enabled = session === worldSession && plugin?.revision === revision && values[enabledKey(id)] === true;
+      const enabled = allowed && session === worldSession && plugin?.revision === revision && values[enabledKey(id)] === true;
       const message: UserPluginMessage = enabled ? { settings: readPluginSettings(plugin.metadata, values) } : { stop: true };
       if (!enabled) sessions.delete(port);
       try {
@@ -63,12 +64,13 @@ export function startUserScripts() {
       worldSession = typeof cached === 'string' ? cached : crypto.randomUUID();
       if (worldSession !== cached) await browser.storage.session.set({ [sessionKey]: worldSession });
     }
-    updateSessions(values);
+    updateSessions(values, !access);
     if (!updateRegistry || access || !worldSession) return;
     const session = worldSession;
-    const scripts = Object.entries(values)
+    const plugins = Object.entries(values)
       .filter(([key, plugin]) => isInstalledKey(key) && values[enabledKey((plugin as InstalledPlugin).metadata.id)] === true)
-      .map(([, plugin]) => registration(plugin as InstalledPlugin, session));
+      .map(([, plugin]) => plugin as InstalledPlugin);
+    const scripts = plugins.map((plugin) => registration(plugin, session));
     const present = await browser.userScripts.getScripts();
     const desired = new Set(scripts.map(({ id }) => id));
     const obsolete = present.filter(({ id }) => id.startsWith(prefix) && !desired.has(id));
@@ -81,8 +83,9 @@ export function startUserScripts() {
     }
 
     const existing = new Set(present.map(({ id }) => id));
-    for (const script of scripts) {
+    for (const [index, script] of scripts.entries()) {
       if (existing.has(script.id)) continue;
+      const { metadata, revision } = plugins[index]!;
       try {
         await browser.userScripts.configureWorld({ worldId: script.worldId, messaging: true });
         await browser.userScripts.register([script]);
@@ -94,19 +97,25 @@ export function startUserScripts() {
               target: { tabId: id }, world: 'USER_SCRIPT', worldId: script.worldId,
               js: [{ file: adapter }, script.js![1]!],
             });
-            for (const result of results) if (result.error) console.error('Third-party plugin injection failed', result.error);
+            for (const result of results) if (result.error) throw new Error(result.error);
           } catch (error) {
-            console.error('Could not inject a third-party plugin into an open YouTube tab', error);
+            // A tab may close or leave YouTube between the query and injection.
+            const current = await browser.tabs.get(id).catch(() => undefined);
+            if (current?.url && /^https?:\/\/(?:www|m)\.youtube\.com\//.test(current.url)) {
+              await reportInstalledError(metadata.id, revision, `Could not run in an open YouTube tab: ${String(error)}`);
+            }
           }
         }));
       } catch (error) {
         console.error(`Could not register third-party plugin ${script.worldId}`, error);
+        await reportInstalledError(metadata.id, revision, `Could not register user script: ${String(error)}`).catch(console.error);
       }
     }
   }
 
   const schedule = (updateRegistry: boolean) => {
     sync = sync.then(() => reconcile(updateRegistry)).catch((error) => console.error('Could not synchronize third-party plugins', error));
+    return sync;
   };
 
   browser.runtime.onUserScriptConnect?.addListener((port) => {
@@ -119,6 +128,11 @@ export function startUserScripts() {
 
     sessions.set(port, { id, revision, session });
     port.onDisconnect.addListener(() => sessions.delete(port));
+    port.onMessage.addListener((message: unknown) => {
+      if (session === worldSession && message && typeof message === 'object' && 'error' in message && typeof message.error === 'string') {
+        void reportInstalledError(id, revision, message.error).catch(console.error);
+      }
+    });
     schedule(false);
   });
 
@@ -130,5 +144,11 @@ export function startUserScripts() {
   browser.runtime.onStartup.addListener(() => schedule(true));
   browser.runtime.onInstalled.addListener(() => schedule(true));
   browser.permissions.onAdded.addListener(() => schedule(true));
+  browser.permissions.onRemoved.addListener(() => schedule(true));
+  browser.runtime.onMessage.addListener((message, sender, reply) => {
+    if (message !== refreshUserScriptsMessage || sender.url !== browser.runtime.getURL('/popup.html')) return;
+    void schedule(true).then(() => reply(userScriptAccess() ?? null));
+    return true;
+  });
   schedule(true);
 }
