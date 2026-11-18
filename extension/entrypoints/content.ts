@@ -1,5 +1,5 @@
 import { discoverPlugins } from '@/plugin-engine';
-import { createPluginRuntime } from '@/plugin-engine/runtime';
+import { createPluginRuntime, listenForPluginNavigation } from '@/plugin-engine/runtime';
 import { enabledKey, pluginStorageKeys, readPluginSettings, watchPluginStorage } from '@/plugin-engine/storage';
 import { youtubeMatches } from '@/youtube';
 
@@ -10,8 +10,7 @@ export default defineContentScript({
     if (ctx.isInvalid) return;
 
     const runtime = createPluginRuntime();
-    ctx.addEventListener(document, 'yt-navigate-finish', runtime.navigate);
-    ctx.addEventListener(window, 'popstate', runtime.navigate);
+    listenForPluginNavigation(runtime.navigate, ctx.signal);
     ctx.addEventListener(window, 'wxt:locationchange', () => {
       queueMicrotask(() => { if (ctx.isValid) runtime.navigate(); });
     });

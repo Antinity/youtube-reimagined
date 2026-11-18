@@ -2,9 +2,12 @@ import { browser, type Browser } from 'wxt/browser';
 import { youtubeMatches } from '@/youtube';
 import { installedKey, isInstalledKey, type InstalledPlugin } from './installed';
 import { enabledKey, readPluginSettings } from './storage';
+import type { PluginSettings } from './index';
 
 const prefix = 'yr-plugin:';
 const adapter = '/user-plugin.js';
+
+export type UserPluginMessage = { settings: PluginSettings } | { stop: true };
 
 export function userScriptAccess(): string | undefined {
   if (import.meta.env.BROWSER === 'firefox' || import.meta.env.BROWSER === 'safari') {
@@ -32,10 +35,26 @@ function registration(plugin: InstalledPlugin): Browser.userScripts.RegisteredUs
 
 export function startUserScripts() {
   let sync = Promise.resolve();
+  const sessions = new Map<Browser.runtime.Port, { id: string; revision: string }>();
 
-  async function reconcile() {
-    if (userScriptAccess()) return;
+  function updateSessions(values: Readonly<Record<string, unknown>>) {
+    for (const [port, { id, revision }] of sessions) {
+      const plugin = values[installedKey(id)] as InstalledPlugin | undefined;
+      const enabled = plugin?.revision === revision && values[enabledKey(id)] === true;
+      const message: UserPluginMessage = enabled ? { settings: readPluginSettings(plugin.metadata, values) } : { stop: true };
+      if (!enabled) sessions.delete(port);
+      try {
+        port.postMessage(message);
+      } catch {
+        sessions.delete(port);
+      }
+    }
+  }
+
+  async function reconcile(updateRegistry: boolean) {
     const values = await browser.storage.local.get(null);
+    updateSessions(values);
+    if (!updateRegistry || userScriptAccess()) return;
     const scripts = Object.entries(values)
       .filter(([key, plugin]) => isInstalledKey(key) && values[enabledKey((plugin as InstalledPlugin).metadata.id)] === true)
       .map(([, plugin]) => registration(plugin as InstalledPlugin));
@@ -69,8 +88,8 @@ export function startUserScripts() {
     }
   }
 
-  const schedule = () => {
-    sync = sync.then(reconcile).catch((error) => console.error('Could not synchronize third-party plugins', error));
+  const schedule = (updateRegistry: boolean) => {
+    sync = sync.then(() => reconcile(updateRegistry)).catch((error) => console.error('Could not synchronize third-party plugins', error));
   };
 
   browser.runtime.onUserScriptConnect?.addListener((port) => {
@@ -81,23 +100,15 @@ export function startUserScripts() {
       return;
     }
 
-    void (async () => {
-      try {
-        const values = await browser.storage.local.get(null);
-        const plugin = values[installedKey(id)] as InstalledPlugin | undefined;
-        if (plugin?.revision === revision && values[enabledKey(id)] === true) {
-          port.postMessage({ settings: readPluginSettings(plugin.metadata, values) });
-        } else {
-          port.disconnect();
-        }
-      } catch (error) {
-        console.error(`Could not initialize third-party plugin ${id}`, error);
-      }
-    })();
+    sessions.set(port, { id, revision });
+    port.onDisconnect.addListener(() => sessions.delete(port));
+    schedule(false);
   });
 
   browser.storage.local.onChanged.addListener((changes) => {
-    if (Object.keys(changes).some((key) => isInstalledKey(key) || /^plugin:[^:]+:enabled$/.test(key))) schedule();
+    const keys = Object.keys(changes);
+    if (keys.some((key) => isInstalledKey(key) || /^plugin:[^:]+:enabled$/.test(key))) schedule(true);
+    else if (sessions.size && keys.some((key) => /^plugin:[^:]+:setting:/.test(key))) schedule(false);
   });
-  schedule();
+  schedule(true);
 }

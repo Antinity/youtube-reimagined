@@ -1,6 +1,14 @@
 import type { Plugin, PluginHooks, PluginSettings } from './index';
 
-type RuntimePlugin = Pick<Plugin, 'id' | 'activate'>;
+export type RuntimePlugin = Pick<Plugin, 'id' | 'activate'>;
+
+export function listenForPluginNavigation(navigate: () => void, signal?: AbortSignal) {
+  const { navigation } = window as Window & { navigation?: EventTarget };
+  navigation?.addEventListener('currententrychange', navigate, { signal });
+  document.addEventListener('yt-navigate-finish', navigate, { signal });
+  window.addEventListener('popstate', navigate, { signal });
+  window.addEventListener('hashchange', navigate, { signal });
+}
 
 interface Activation {
   cleanup: () => void;
