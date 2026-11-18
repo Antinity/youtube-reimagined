@@ -1,3 +1,5 @@
+import { isValidOptionValue } from './options';
+
 export interface Plugin {
   id: string;
   name: string;
@@ -15,12 +17,17 @@ export type PluginOption = { label: string } & (
   | { type: 'number'; default: number; min?: number; max?: number; integer?: boolean }
 );
 
+export type PluginOptionValue = PluginOption['default'];
+export type PluginSettings = Readonly<Record<string, PluginOptionValue>>;
+
 export interface PluginContext {
+  settings: PluginSettings;
   onCleanup(cleanup: () => void): void;
 }
 
 export interface PluginHooks {
   onNavigate?(url: URL): void;
+  onSettingsChange?(settings: PluginSettings): void;
 }
 
 const modules = import.meta.glob<{ default: Plugin }>('./*.plugin.js');
@@ -66,5 +73,5 @@ function hasValidMetadata(plugin: Plugin): boolean {
       || (Array.isArray(contributors) && contributors.every((name) => typeof name === 'string')))
     && (options === undefined || (options !== null && typeof options === 'object' && !Array.isArray(options)
       && Object.values(options).every((option) => option && typeof option.label === 'string'
-        && ['boolean', 'string', 'number'].includes(option.type) && typeof option.default === option.type)));
+        && isValidOptionValue(option, option.default))));
 }

@@ -1,21 +1,38 @@
-import type { Plugin, PluginHooks } from './index';
+import type { Plugin, PluginHooks, PluginSettings } from './index';
+
+interface Activation {
+  cleanup: () => void;
+  hooks?: PluginHooks | void;
+  settings: PluginSettings;
+}
 
 export function createPluginRuntime() {
-  const active = new Map<Plugin, { cleanup: () => void; hooks?: PluginHooks | void }>();
+  const active = new Map<Plugin, Activation>();
   let currentUrl = location.href;
 
   return {
-    setEnabled(plugin: Plugin, enabled: boolean) {
+    update(plugin: Plugin, enabled: boolean, settings: PluginSettings) {
       const existing = active.get(plugin);
       if (!enabled) {
         active.delete(plugin);
         existing?.cleanup();
         return;
       }
-      if (existing) return;
+      if (existing) {
+        if (Object.entries(settings).some(([key, value]) => !Object.is(value, existing.settings[key]))) {
+          existing.settings = settings;
+          try {
+            existing.hooks?.onSettingsChange?.(settings);
+          } catch (error) {
+            console.error(`Could not notify plugin ${plugin.id} of settings changes`, error);
+          }
+        }
+        return;
+      }
 
       const cleanups: (() => void)[] = [];
-      const activation: { cleanup: () => void; hooks?: PluginHooks | void } = {
+      const activation: Activation = {
+        settings,
         cleanup() {
           for (const cleanup of cleanups.splice(0).reverse()) {
             try {
@@ -28,7 +45,7 @@ export function createPluginRuntime() {
       };
       active.set(plugin, activation);
       try {
-        activation.hooks = plugin.activate({ onCleanup: (cleanup) => { cleanups.push(cleanup); } });
+        activation.hooks = plugin.activate({ settings, onCleanup: (cleanup) => { cleanups.push(cleanup); } });
       } catch (error) {
         console.error(`Could not activate plugin ${plugin.id}`, error);
         activation.cleanup();

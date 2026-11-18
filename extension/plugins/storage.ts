@@ -1,4 +1,6 @@
 import { browser } from 'wxt/browser';
+import type { Plugin, PluginOptionValue, PluginSettings } from './index';
+import { isValidOptionValue } from './options.ts';
 
 export function enabledKey(id: string): string {
   return `plugin:${id}:enabled`;
@@ -6,6 +8,28 @@ export function enabledKey(id: string): string {
 
 export function setPluginEnabled(id: string, enabled: boolean): Promise<void> {
   return browser.storage.local.set({ [enabledKey(id)]: enabled });
+}
+
+function settingKey(id: string, key: string): string {
+  return `plugin:${id}:setting:${key}`;
+}
+
+export function pluginStorageKeys(plugin: Plugin): string[] {
+  return [enabledKey(plugin.id), ...Object.keys(plugin.options ?? {}).map((key) => settingKey(plugin.id, key))];
+}
+
+export function readPluginSettings(plugin: Plugin, values: Readonly<Record<string, unknown>>): PluginSettings {
+  return Object.freeze(Object.fromEntries(Object.entries(plugin.options ?? {}).map(([key, option]) => {
+    const value = values[settingKey(plugin.id, key)];
+    return [key, isValidOptionValue(option, value) ? value : option.default];
+  })));
+}
+
+export async function setPluginSetting(plugin: Plugin, key: string, value: PluginOptionValue): Promise<void> {
+  const options = plugin.options;
+  const option = options && Object.hasOwn(options, key) ? options[key] : undefined;
+  if (!option || !isValidOptionValue(option, value)) throw new RangeError(`Invalid value for option ${key}`);
+  await browser.storage.local.set({ [settingKey(plugin.id, key)]: value });
 }
 
 export function watchPluginStorage(
