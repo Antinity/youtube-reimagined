@@ -19,7 +19,7 @@ export interface ModuleImport {
   errors: string[];
 }
 
-export function moduleMetadata(module: Module) {
+function moduleMetadata(module: Module) {
   return module.kind === 'plugin' ? module.plugin.metadata : module.theme.metadata;
 }
 
@@ -30,6 +30,8 @@ function safePath(entry: Entry) {
 }
 
 export async function inspectModuleImport(file: File, modsOnly = false): Promise<ModuleImport> {
+  const maxBytes = 32_000_000;
+  if (file.size > maxBytes) throw new Error('Choose a file up to 32 MB.');
   const modules: Module[] = [];
   const errors: string[] = [];
   async function inspect(name: string, read: () => Module | Promise<Module>) {
@@ -41,14 +43,14 @@ export async function inspectModuleImport(file: File, modsOnly = false): Promise
   }
 
   if (/\.zip$/i.test(file.name)) {
-    if (file.size > 32_000_000) throw new Error('Expected a ZIP up to 32 MB.');
     const zip = new ZipReader(new BlobReader(file), { useWebWorkers: false });
     try {
       const entries = await zip.getEntries();
-      if (entries.length > 256 || entries.reduce((sum, entry) => sum + entry.uncompressedSize, 0) > 32_000_000) {
-        throw new Error('Expected a ZIP with up to 256 entries and 32 MB of extracted files.');
+      if (entries.reduce((sum, entry) => sum + entry.uncompressedSize, 0) > maxBytes) {
+        throw new Error('Expected a ZIP with up to 32 MB of extracted files.');
       }
-      const bundle = modsOnly || entries.some(({ filename }) => /^themes\/[^/]+\/|^plugins\/(?!metadata\.js$)[^/]+\.js$/i.test(filename));
+      const singleTheme = entries.some(({ filename }) => /^plugins\/theme\.css$/i.test(filename));
+      const bundle = modsOnly || !singleTheme && entries.some(({ filename }) => /^themes\/[^/]+\/|^plugins\/[^/]+\.js$/i.test(filename));
       if (!bundle) {
         if (file.size > 4_000_000) throw new Error('Expected a theme ZIP up to 4 MB.');
         await inspect(file.name, async () => ({ kind: 'theme', theme: await readThemeEntries(entries) }));
@@ -66,7 +68,7 @@ export async function inspectModuleImport(file: File, modsOnly = false): Promise
           if (!entry.directory && /^plugins\/[^/]+\.js$/i.test(path)) {
             const name = path.slice('plugins/'.length);
             await inspect(path, async () => ({ kind: 'plugin', plugin: validatePluginImport(name,
-              new TextDecoder('utf-8', { fatal: true }).decode(await readZipFile(entry, 1_000_000))) }));
+              new TextDecoder('utf-8', { fatal: true }).decode(await readZipFile(entry, maxBytes))) }));
           } else {
             const folder = /^themes\/([a-z0-9][a-z0-9._-]*)\//i.exec(path)?.[1];
             if (!folder) {
@@ -86,10 +88,8 @@ export async function inspectModuleImport(file: File, modsOnly = false): Promise
       await zip.close().catch(() => {});
     }
   } else if (!modsOnly && /\.js$/i.test(file.name)) {
-    if (file.size > 1_000_000) throw new Error('Expected a JavaScript plugin up to 1 MB.');
     await inspect(file.name, async () => ({ kind: 'plugin', plugin: validatePluginImport(file.name, await file.text()) }));
   } else if (!modsOnly && /\.css$/i.test(file.name)) {
-    if (file.size > 500_000) throw new Error('Expected a CSS theme up to 500 KB.');
     await inspect(file.name, async () => ({ kind: 'theme', theme: validateThemeImport(file.name, await file.text()) }));
   } else {
     throw new Error(modsOnly ? 'Choose a mods ZIP.' : 'Choose a .js, .css, or .zip file.');
