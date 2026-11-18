@@ -22,6 +22,10 @@ export default function DataManagement() {
       const backup = await createBackup();
       downloadFile(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }), 'youtube-reimagined-backup.json');
     }, 'Configuration backup exported.'); }}>Export configuration</button>
+    <button onClick={() => { void run(async () => {
+      const { exportModules } = await import('@/data/module-export');
+      downloadFile(await exportModules(), 'youtube-reimagined-modules.zip');
+    }, 'User modules exported.'); }}>Export user modules</button>
     {message && <p role="status">{message}</p>}
     {error && <p role="alert">{error}</p>}
   </section>;
