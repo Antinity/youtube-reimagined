@@ -1,5 +1,14 @@
 export interface Plugin {
   id: string;
+  activate(context: PluginContext): PluginHooks | void;
+}
+
+export interface PluginContext {
+  onCleanup(cleanup: () => void): void;
+}
+
+export interface PluginHooks {
+  onNavigate?(url: URL): void;
 }
 
 const modules = import.meta.glob<{ default: Plugin }>('./*.plugin.js');
@@ -22,8 +31,9 @@ async function loadPlugins(): Promise<Plugin[]> {
     }
 
     const plugin = result.value.default;
-    if (typeof plugin?.id !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(plugin.id)) {
-      console.error(`Plugin ${path} must export a plugin with a valid ID`);
+    if (typeof plugin?.id !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(plugin.id)
+      || typeof plugin.activate !== 'function') {
+      console.error(`Plugin ${path} must export a plugin with a valid ID and activate function`);
       continue;
     }
     if (plugins.has(plugin.id)) {
