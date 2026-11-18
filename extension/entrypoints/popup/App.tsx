@@ -132,7 +132,7 @@ export default function App() {
   return (
     <main style={{ width: 360 }}>
       <h1>Plugins</h1>
-      <PluginImport />
+      <PluginImport bundledIds={plugins?.map(({ id }) => id)} />
       {error && <p role="alert">{error}</p>}
       {(!plugins || !values) && !error && <p>Loading plugins…</p>}
       {plugins?.length === 0 && <p>No plugins found.</p>}
