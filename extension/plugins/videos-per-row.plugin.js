@@ -83,7 +83,7 @@ const plugin = {
         hideMembersOnly: { type: 'boolean', label: 'Hide members-only videos', default: false },
       },
     },
-  },
+    },
   activate({ settings, onCleanup }) {
     if (location.hostname !== 'www.youtube.com') return;
 

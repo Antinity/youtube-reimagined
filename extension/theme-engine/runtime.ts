@@ -18,6 +18,7 @@ export function createThemeRuntime(doc: Document) {
 
       const next = doc.createElement('style');
       next.dataset.yrTheme = theme.metadata.id;
+      next.media = 'not all';
       next.textContent = css;
       (doc.head ?? doc.documentElement).append(next);
       if (!next.sheet) {
@@ -25,6 +26,7 @@ export function createThemeRuntime(doc: Document) {
         throw new Error(`The page blocked the stylesheet for "${theme.metadata.name}".`);
       }
       active?.remove();
+      next.media = '';
       active = next;
     },
     dispose() {
