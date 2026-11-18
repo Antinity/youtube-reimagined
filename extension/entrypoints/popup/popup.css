@@ -31,7 +31,7 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-body { margin: 0; font: inherit; background: var(--background); color: var(--ink); }
+body { margin: 0; overflow: hidden; font: inherit; background: var(--background); color: var(--ink); }
 button, input, select { font: inherit; }
 button, input, select, a { -webkit-tap-highlight-color: transparent; }
 button {
@@ -54,11 +54,11 @@ h3 { font-size: 14px; margin: 0; }
 .shell {
   display: grid;
   grid-template: 48px minmax(0, 1fr) / 49px minmax(0, 1fr);
+  /* The toolbar popup derives its viewport from the content's intrinsic size. */
   inline-size: 370px;
-  max-inline-size: 100vw;
   block-size: 564px;
-  max-block-size: 100vh;
 }
+.rail, .workspace { max-block-size: calc(100vh - 48px); }
 .app-header {
   grid-column: 1 / -1;
   display: flex;
