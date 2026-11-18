@@ -368,6 +368,87 @@ legend { padding-inline: 3px; font-weight: 600; }
 .restore-preview { display: grid; gap: 8px; overflow-wrap: anywhere; }
 .reset-actions details { color: var(--muted); }
 .reset-actions details button { margin-top: 8px; }
+.browse-page {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 20px;
+}
+.browse-preview {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 16px 14px;
+  z-index: -2;
+}
+.browse-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--background) 48%, transparent);
+  backdrop-filter: blur(4px);
+}
+.browse-placeholder { display: block; background: var(--fill); border-radius: 5px; }
+.browse-search { height: 34px; border-radius: 8px; }
+.browse-plugin-list { display: grid; gap: 10px; }
+.browse-plugin {
+  display: grid;
+  grid-template-columns: 32px 1fr 28px;
+  align-items: center;
+  gap: 12px;
+  min-height: 62px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.browse-module-icon { aspect-ratio: 1; }
+.browse-lines { display: grid; gap: 6px; }
+.browse-lines span { height: 7px; }
+.browse-lines span:first-child { width: 58%; }
+.browse-toggle { height: 14px; border-radius: 10px; }
+.browse-theme-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.browse-theme-list > div {
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--fill) 50%, var(--surface) 50%);
+}
+.browse-card {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  width: min(100%, 270px);
+  padding: 24px 20px 20px;
+  text-align: center;
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 8px 28px #0003;
+}
+.browse-card > svg { color: var(--blue); }
+.browse-card h1 { font-size: 20px; }
+.browse-card p { color: var(--muted); line-height: 1.4; }
+.discord-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  background: #454fbf;
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color var(--motion), scale var(--motion);
+}
+.discord-link:hover { background: #3943ac; }
+.discord-link:active { scale: .975; }
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -380,5 +461,5 @@ legend { padding-inline: 3px; font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
   :root { --motion: 0ms; }
   .shell, .confirm { animation: none; }
-  button:not(:disabled):active { scale: 1; }
+  button:not(:disabled):active, .discord-link:active { scale: 1; }
 }

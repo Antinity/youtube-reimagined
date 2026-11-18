@@ -10,6 +10,7 @@ import {
 } from '@/plugin-engine/storage';
 import { refreshUserScriptsMessage, userScriptAccess } from '@/plugin-engine/user-scripts';
 import { AddPage } from './AddPage';
+import { BrowsePage } from './BrowsePage';
 import { appearanceKey, pauseModsKey, readAppearance } from '@/data/preferences';
 import ThemeManagement from './ThemeManagement';
 import { Settings } from './Settings';
@@ -191,7 +192,7 @@ export default function App() {
         </>}
     </section>}
     {page === 'themes' && <ThemeManagement detail={detail} openDetail={setDetail} closeDetail={() => setDetail(undefined)} />}
-    {page === 'browse' && <section className="page"><h1>Browse</h1><p>Coming Soon</p></section>}
+    {page === 'browse' && <BrowsePage />}
     {page === 'add' && <AddPage key={transfer ?? 'add'} modsOnly={transfer === 'mods'} openSettings={() => openTransfer('settings')} />}
     {page === 'settings' && <Settings values={preferences} focusImport={transfer === 'settings'} openMods={() => openTransfer('mods')} />}
     {page === 'about' && <section className="page settings-page"><h1>About</h1>
