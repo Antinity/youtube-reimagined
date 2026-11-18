@@ -7,11 +7,14 @@ import { isValidThemeValue } from './settings.ts';
 
 export interface ThemeMetadata extends Omit<PluginMetadata, 'apiVersion'> {
   schemaVersion?: 1;
+  homepage?: string;
+  license?: string;
 }
 
 export interface Theme {
   metadata: ThemeMetadata;
   css: string;
+  metadataSource?: string;
 }
 
 const opening = '/* ==Theme==';
@@ -53,7 +56,7 @@ export function readTheme(source: string): Theme {
   return { metadata, css };
 }
 
-function validateMetadata(metadata: unknown, invalid: (path: (string | number)[], expected: string) => never): asserts metadata is ThemeMetadata {
+export function validateMetadata(metadata: unknown, invalid: (path: (string | number)[], expected: string) => never): asserts metadata is ThemeMetadata {
   if (!isObject(metadata)) invalid([], 'an object with id, name, description, version and authors');
   if (!isPluginId(metadata.id)) invalid(['id'], 'lowercase letters and digits separated by single hyphens');
   for (const field of ['name', 'description', 'version']) {
@@ -67,6 +70,14 @@ function validateMetadata(metadata: unknown, invalid: (path: (string | number)[]
   }
   if (metadata.schemaVersion !== undefined && metadata.schemaVersion !== 1) {
     invalid(['schemaVersion'], '1 or an omitted property');
+  }
+  if (metadata.license !== undefined && !isNonEmptyText(metadata.license)) invalid(['license'], 'a non-empty license name');
+  if (metadata.homepage !== undefined) {
+    try {
+      if (typeof metadata.homepage !== 'string' || new URL(metadata.homepage).protocol !== 'https:') throw new Error();
+    } catch {
+      invalid(['homepage'], 'an absolute HTTPS URL');
+    }
   }
 
   const settingIds = new Set<string>();
