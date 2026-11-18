@@ -6,6 +6,19 @@ import { readThemeSettings } from '@/theme-engine/settings';
 import { removeTheme, selectedThemeId, selectTheme, setThemeSetting, watchThemeStorage } from '@/theme-engine/storage';
 import { OptionFields } from './Options';
 import ThemeImport from './ThemeImport';
+import { fallbackPreview, validatePreview, type ThemePreview } from '@/theme-engine/preview';
+
+function Preview({ image }: { image?: ThemePreview }) {
+  const [verified, setVerified] = useState<ThemePreview>();
+  useEffect(() => {
+    let active = true;
+    if (image) void validatePreview(image.name, image.dataUrl).then(() => {
+      if (active) setVerified(image);
+    }).catch((error) => console.error(error));
+    return () => { active = false; };
+  }, [image]);
+  return <img src={image && verified === image ? image.dataUrl : fallbackPreview} width={160} height={120} alt="" />;
+}
 
 export default function ThemeManagement() {
   const [bundled] = useState(discoverThemes);
@@ -51,10 +64,13 @@ export default function ThemeManagement() {
         return <div key={metadata.id}>
           <label><input type="radio" name="active-theme" checked={shown === metadata.id}
             onChange={() => { void choose(metadata.id); }} /> {metadata.name}</label>
+          <div><Preview image={theme.preview} /></div>
           <p>{metadata.description}</p>
           <p>{[metadata.authors.length ? `By ${metadata.authors.join(', ')}` : '',
             metadata.contributors?.length ? `Contributors: ${metadata.contributors.join(', ')}` : '',
             `v${metadata.version}`, installed ? 'Imported' : 'Bundled'].filter(Boolean).join(' · ')}</p>
+          {metadata.license && <p>License {metadata.license}</p>}
+          {metadata.homepage && <p><a href={metadata.homepage} target="_blank" rel="noopener noreferrer">Theme homepage</a></p>}
           {installed && <button aria-label={`Remove theme ${metadata.name}`} onClick={async () => {
             setError('');
             try {
