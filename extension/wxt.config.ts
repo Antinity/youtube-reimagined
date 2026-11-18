@@ -5,6 +5,8 @@ import { youtubeMatches } from './youtube';
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
+    name: 'YouTube Reimagined',
+    description: 'Customize YouTube with plugins.',
     permissions: ['storage', 'scripting'],
     host_permissions: youtubeMatches,
   },
