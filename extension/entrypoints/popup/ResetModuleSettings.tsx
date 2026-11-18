@@ -5,7 +5,7 @@ export default function ResetModuleSettings({ kind, id, name }: { kind: 'plugin'
   const [result, setResult] = useState<{ error: boolean; message: string }>();
   const confirm = useConfirm();
   return <div>
-    <button onClick={async () => {
+    <button className="danger" onClick={async () => {
       if (!await confirm({ title: 'Reset module settings?', message: `Restore the default settings for ${name}.`,
         action: 'Reset settings', destructive: true })) return;
       try {

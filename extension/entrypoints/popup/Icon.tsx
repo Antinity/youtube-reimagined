@@ -12,8 +12,9 @@ import upload from '@iconify-icons/mdi/cloud-upload-outline';
 import warning from '@iconify-icons/mdi/alert';
 import check from '@iconify-icons/mdi/check';
 import system from '@iconify-icons/mdi/sync';
+import close from '@iconify-icons/mdi/close';
 
-const icons = { puzzle, brush, web, plus, minus, help, cog, back, search, upload, warning, check, system };
+const icons = { puzzle, brush, web, plus, minus, help, cog, back, search, upload, warning, check, system, close };
 export type IconName = keyof typeof icons;
 
 export function AppIcon({ name, size = 24 }: { name: IconName; size?: number }) {
