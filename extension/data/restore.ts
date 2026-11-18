@@ -20,7 +20,8 @@ export async function restoreBackup(backup: ValidatedBackup, mode: RestoreMode, 
     if (unavailable) return unavailable;
   }
   try {
-    await browser.runtime.sendMessage(refreshUserScriptsMessage);
+    const result = await browser.runtime.sendMessage(refreshUserScriptsMessage) as { error?: string } | undefined;
+    if (result?.error) return `Could not synchronize third-party plugins: ${result.error}`;
   } catch (cause) {
     return `Saved configuration. Could not confirm synchronization of user scripts: ${String(cause)}`;
   }

@@ -116,8 +116,16 @@ export function startUserScripts() {
   }
 
   const schedule = (updateRegistry: boolean) => {
-    sync = sync.then(() => reconcile(updateRegistry)).catch((error) => console.error('Could not synchronize third-party plugins', error));
-    return sync;
+    sync = sync.then(() => reconcile(updateRegistry));
+    const result = sync.then(
+      () => ({}),
+      (error: unknown) => {
+        console.error('Could not synchronize third-party plugins', error);
+        return { error: String(error) };
+      },
+    );
+    sync = result.then(() => {});
+    return result;
   };
 
   browser.runtime.onUserScriptConnect?.addListener((port) => {
@@ -149,7 +157,7 @@ export function startUserScripts() {
   browser.permissions.onRemoved.addListener(() => schedule(true));
   browser.runtime.onMessage.addListener((message, sender, reply) => {
     if (message !== refreshUserScriptsMessage || sender.url !== browser.runtime.getURL('/popup.html')) return;
-    void schedule(true).then(() => reply(userScriptAccess() ?? null));
+    void schedule(true).then(reply);
     return true;
   });
   schedule(true);
