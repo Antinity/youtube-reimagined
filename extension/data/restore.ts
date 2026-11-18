@@ -1,0 +1,48 @@
+import { browser } from 'wxt/browser';
+import { installedKey, isInstalledKey, pluginErrorKey } from '@/plugin-engine/installed';
+import { enabledKey, settingKey } from '@/plugin-engine/storage';
+import { installedThemes, installedThemesKey } from '@/theme-engine/installed';
+import { selectedThemeKey } from '@/theme-engine/storage';
+import { themeSettingsKey } from '@/theme-engine/settings';
+import { themeApplicationErrorKey } from '@/theme-engine/diagnostics';
+import type { ValidatedBackup } from './validate';
+
+export type RestoreMode = 'merge' | 'replace';
+
+export async function restoreBackup(backup: ValidatedBackup, mode: RestoreMode, enableImported: boolean): Promise<void> {
+  const previous = await browser.storage.local.get(null);
+  const replace = mode === 'replace';
+  const next: Record<string, unknown> = {
+    [selectedThemeKey]: backup.preferences.selectedTheme,
+    [themeApplicationErrorKey]: null,
+  };
+  // Tombstones let Chrome publish replacement and deletion in a single storage transaction.
+  if (replace) {
+    for (const key of Object.keys(previous)) {
+      if (isInstalledKey(key) || key.startsWith('plugin:') || key.startsWith('user-plugin-error:')) next[key] = null;
+    }
+  }
+  for (const item of backup.plugins) {
+    const source = backup.pluginSources.get(item.id);
+    next[enabledKey(item.id)] = item.enabled && (!source || enableImported);
+    if (source) {
+      next[installedKey(item.id)] = { ...source, revision: crypto.randomUUID() };
+      next[pluginErrorKey(item.id)] = null;
+      for (const key of Object.keys(previous)) {
+        if (key.startsWith(`plugin:${item.id}:setting:`)) next[key] = null;
+      }
+    }
+    for (const [key, value] of Object.entries(item.settings)) next[settingKey(item.id, key)] = value;
+  }
+
+  const themes = new Map((replace ? [] : installedThemes(previous)).map((theme) => [theme.metadata.id, theme]));
+  const settings = replace ? {} : { ...(previous[themeSettingsKey] as Record<string, unknown> | undefined) };
+  for (const item of backup.themes) {
+    if (item.module) themes.set(item.id, { ...item.module, revision: crypto.randomUUID() });
+    const existing = Object.hasOwn(settings, item.id) && !item.module ? settings[item.id] : undefined;
+    settings[item.id] = { ...(existing as Record<string, unknown> | undefined), ...item.settings };
+  }
+  next[installedThemesKey] = [...themes.values()];
+  next[themeSettingsKey] = settings;
+  await browser.storage.local.set(next);
+}

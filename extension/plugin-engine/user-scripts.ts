@@ -69,7 +69,7 @@ export function startUserScripts() {
     updateSessions(values, !access, bundled);
     if (!updateRegistry || access || !worldSession) return;
     const session = worldSession;
-    const plugins = Object.entries(values).filter(([key]) => isInstalledKey(key))
+    const plugins = Object.entries(values).filter(([key, value]) => isInstalledKey(key) && value)
       .map(([, plugin]) => plugin as InstalledPlugin)
       .filter(({ metadata: { id } }) => !bundled.has(id) && values[enabledKey(id)] === true);
     const scripts = plugins.map((plugin) => registration(plugin, session));

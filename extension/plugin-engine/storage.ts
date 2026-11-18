@@ -11,7 +11,7 @@ export function setPluginEnabled(id: string, enabled: boolean): Promise<void> {
   return browser.storage.local.set({ [enabledKey(id)]: enabled });
 }
 
-function settingKey(id: string, key: string): string {
+export function settingKey(id: string, key: string): string {
   return `plugin:${id}:setting:${key}`;
 }
 

@@ -31,7 +31,7 @@ export function pluginErrorKey(id: string): string {
 
 async function listInstalledPlugins(): Promise<InstalledPluginInfo[]> {
   const values = await browser.storage.local.get(null);
-  return Object.entries(values).filter(([key]) => isInstalledKey(key)).map(([, value]) => {
+  return Object.entries(values).filter(([key, value]) => isInstalledKey(key) && value).map(([, value]) => {
     const { name, metadata, revision } = value as InstalledPlugin;
     return { name, metadata, revision };
   });
