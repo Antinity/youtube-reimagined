@@ -1,9 +1,26 @@
+import { dirname, resolve } from 'node:path';
 import { defineConfig } from 'wxt';
 import { youtubeMatches } from './youtube';
 
 // See https://wxt.dev/api/reference/wxt/interfaces/inlineconfig.html
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
+  hooks: {
+    'server:started'({ config }, server) {
+      const pluginsDir = resolve(config.root, 'plugins');
+      const registry = resolve(pluginsDir, 'index.ts');
+
+      server.watcher.on('all', (event, file) => {
+        if (event !== 'add' && event !== 'change' && event !== 'unlink') return;
+        if (dirname(resolve(file)) !== pluginsDir || !file.endsWith('.plugin.js')) return;
+        if (event !== 'change') {
+          // A new glob match is absent from the previous content-script bundle's dependencies.
+          server.watcher.emit('all', 'change', registry);
+        }
+        server.reloadPage('popup.html');
+      });
+    },
+  },
   manifest: {
     name: 'YouTube Reimagined',
     description: 'Customize YouTube with plugins.',
