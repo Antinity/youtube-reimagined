@@ -4,7 +4,7 @@ import { enabledKey, pluginStorageKeys, readPluginSettings, watchPluginStorage }
 import { youtubeMatches } from '@/youtube';
 import { discoverThemes } from '@/theme-engine';
 import { createThemeRuntime } from '@/theme-engine/runtime';
-import { selectedThemeId, watchThemeStorage } from '@/theme-engine/storage';
+import { reportThemeApplicationError, selectedThemeId, watchThemeStorage } from '@/theme-engine/storage';
 import { installedThemes } from '@/theme-engine/installed';
 
 export default defineContentScript({
@@ -14,12 +14,13 @@ export default defineContentScript({
     const themeRuntime = createThemeRuntime(document);
     const stopThemes = watchThemeStorage((values) => {
       if (ctx.isInvalid) return;
+      const id = selectedThemeId(values);
       try {
-        const id = selectedThemeId(values);
         themeRuntime.apply(themes.find((theme) => theme.metadata.id === id)
           ?? installedThemes(values).find((theme) => theme.metadata.id === id));
       } catch (error) {
         console.error('Could not apply theme', error);
+        if (id) void reportThemeApplicationError(id, error).catch(console.error);
       }
     }, (error) => console.error('Could not read theme settings', error));
     ctx.onInvalidated(() => {

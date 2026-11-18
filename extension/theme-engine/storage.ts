@@ -5,6 +5,7 @@ import { installedThemesKey } from './installed';
 
 export const selectedThemeKey = 'theme:selected';
 export const themeSettingsKey = 'theme:settings';
+export const themeApplicationErrorKey = 'theme:application-error';
 
 export function selectedThemeId(values: Readonly<Record<string, unknown>>): string | null {
   const value = values[selectedThemeKey];
@@ -13,9 +14,20 @@ export function selectedThemeId(values: Readonly<Record<string, unknown>>): stri
 }
 
 export function selectTheme(id: string | null): Promise<void> {
-  return browser.storage.local.set({ [selectedThemeKey]: id });
+  return browser.storage.local.set({ [selectedThemeKey]: id, [themeApplicationErrorKey]: null });
 }
 
-export function watchThemeStorage(onUpdate: (values: Readonly<Record<string, unknown>>) => void, onError: (error: unknown) => void) {
-  return watchPluginStorage([selectedThemeKey, themeSettingsKey, installedThemesKey], onUpdate, onError);
+export async function reportThemeApplicationError(id: string, error: unknown): Promise<void> {
+  const values = await browser.storage.local.get(selectedThemeKey);
+  if (id !== selectedThemeId(values)) return;
+  await browser.storage.local.set({
+    [themeApplicationErrorKey]: { id, message: error instanceof Error ? error.message : String(error) },
+  });
+}
+
+export function watchThemeStorage(onUpdate: (values: Readonly<Record<string, unknown>>) => void, onError: (error: unknown) => void,
+  includeDiagnostics = false) {
+  const keys = [selectedThemeKey, themeSettingsKey, installedThemesKey];
+  if (includeDiagnostics) keys.push(themeApplicationErrorKey);
+  return watchPluginStorage(keys, onUpdate, onError);
 }

@@ -25,7 +25,7 @@ export default function ThemeImport() {
         const source = await file.text();
         if (request.current === current) setCandidate(validateThemeImport(file.name, source));
       } catch (cause) {
-        if (request.current === current) setError(`${file.name}: ${cause instanceof Error ? cause.message : String(cause)}`);
+        if (request.current === current) setError(`Validation error in ${file.name}: ${cause instanceof Error ? cause.message : String(cause)}`);
       }
     }} /></label>
     {candidate && <p>{candidate.metadata.name}{' '}<button disabled={busy} onClick={async () => {
@@ -38,7 +38,7 @@ export default function ThemeImport() {
         setReplacement(undefined);
       } catch (cause) {
         if (cause instanceof DuplicateThemeError) setReplacement(cause.installed);
-        setError(cause instanceof Error ? cause.message : String(cause));
+        setError(`Installation: ${cause instanceof Error ? cause.message : String(cause)}`);
       } finally {
         setBusy(false);
       }
