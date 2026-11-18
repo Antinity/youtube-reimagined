@@ -1,42 +1,6 @@
-import { isValidOptionValue } from './options';
+import { hasValidMetadata, type Plugin } from './schema';
 
-export interface PluginMetadata {
-  id: string;
-  name: string;
-  description: string;
-  version: string;
-  authors: readonly string[];
-  contributors?: readonly string[];
-  options?: Readonly<Record<string, PluginOption>>;
-  apiVersion?: 1;
-}
-
-export interface Plugin extends PluginMetadata {
-  activate(context: PluginContext): PluginHooks | void;
-}
-
-export type PluginOption = { label: string; group?: string } & (
-  | { type: 'boolean'; default: boolean }
-  | { type: 'string'; default: string }
-  | { type: 'select'; default: string; choices: Readonly<Record<string, string>> }
-  | ({ default: number; step?: number; integer?: boolean } & (
-    | { type: 'number'; min?: number; max?: number }
-    | { type: 'range'; min: number; max: number }
-  ))
-);
-
-export type PluginOptionValue = PluginOption['default'];
-export type PluginSettings = Readonly<Record<string, PluginOptionValue>>;
-
-export interface PluginContext {
-  settings: PluginSettings;
-  onCleanup(cleanup: () => void): void;
-}
-
-export interface PluginHooks {
-  onNavigate?(url: URL): void;
-  onSettingsChange?(settings: PluginSettings): void;
-}
+export type { Plugin, PluginContext, PluginHooks, PluginMetadata, PluginOption, PluginOptionValue, PluginSettings } from './schema';
 
 const modules = import.meta.glob<{ default: Plugin }>('../plugins/*.js');
 let discovery: Promise<Plugin[]> | undefined;
@@ -58,8 +22,7 @@ async function loadPlugins(): Promise<Plugin[]> {
     }
 
     const plugin = result.value.default;
-    if (typeof plugin?.id !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(plugin.id)
-      || typeof plugin.activate !== 'function' || !hasValidMetadata(plugin)) {
+    if (!plugin || typeof plugin.activate !== 'function' || !hasValidMetadata(plugin)) {
       console.error(`Plugin ${path} has an invalid definition`);
       continue;
     }
@@ -71,15 +34,4 @@ async function loadPlugins(): Promise<Plugin[]> {
   }
 
   return [...plugins.values()];
-}
-
-function hasValidMetadata(plugin: Plugin): boolean {
-  const { name, description, version, authors, contributors, options } = plugin;
-  return [name, description, version].every((value) => typeof value === 'string' && value.trim())
-    && Array.isArray(authors) && authors.every((author) => typeof author === 'string')
-    && (contributors === undefined
-      || (Array.isArray(contributors) && contributors.every((name) => typeof name === 'string')))
-    && (options === undefined || (options !== null && typeof options === 'object' && !Array.isArray(options)
-      && Object.values(options).every((option) => option && typeof option.label === 'string'
-        && isValidOptionValue(option, option.default))));
 }

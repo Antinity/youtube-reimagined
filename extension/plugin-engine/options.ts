@@ -1,4 +1,4 @@
-import type { PluginOption, PluginOptionValue } from './index';
+import type { PluginOption, PluginOptionValue } from './schema';
 
 export function isValidOptionValue(option: PluginOption, value: unknown): value is PluginOptionValue {
   switch (option.type) {

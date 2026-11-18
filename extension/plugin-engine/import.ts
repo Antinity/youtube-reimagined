@@ -1,5 +1,5 @@
 import { parse, type AnyNode, type Expression, type Node } from 'acorn';
-import type { PluginMetadata, PluginOption } from './index';
+import { isNonEmptyText, isPluginId, pluginApiVersion, type PluginMetadata, type PluginOption } from './schema.ts';
 import { isValidOptionValue } from './options.ts';
 
 export interface PluginImportCandidate {
@@ -96,7 +96,7 @@ export function validatePluginImport(name: string, source: string): PluginImport
 
   function string(node: AnyNode, path: string, allowEmpty = false) {
     const value = literal(node, path);
-    if (typeof value !== 'string' || (!allowEmpty && !value.trim())) fail(node, `${path} must be ${allowEmpty ? 'a' : 'a non-empty'} string.`);
+    if (typeof value !== 'string' || (!allowEmpty && !isNonEmptyText(value))) fail(node, `${path} must be ${allowEmpty ? 'a' : 'a non-empty'} string.`);
     return value;
   }
 
@@ -115,7 +115,7 @@ export function validatePluginImport(name: string, source: string): PluginImport
   const read = (key: string) => required(fields, exported.declaration, key, `a plugin ${key} property`);
 
   const id = string(read('id'), 'Plugin.id');
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) fail(read('id'), 'Plugin.id must use lowercase letters, digits, and single hyphens between segments.');
+  if (!isPluginId(id)) fail(read('id'), 'Plugin.id must use lowercase letters, digits, and single hyphens between segments.');
   const metadata: PluginMetadata = {
     id,
     name: string(read('name'), 'Plugin.name'),
@@ -127,8 +127,8 @@ export function validatePluginImport(name: string, source: string): PluginImport
   if (contributors) metadata.contributors = people(contributors, 'Plugin.contributors');
   const api = fields.get('apiVersion');
   if (api) {
-    if (literal(api, 'Plugin.apiVersion') !== 1) fail(api, 'Unsupported plugin API version. Expected apiVersion: 1 or omit the property.');
-    metadata.apiVersion = 1;
+    if (literal(api, 'Plugin.apiVersion') !== pluginApiVersion) fail(api, `Unsupported plugin API version. Expected apiVersion: ${pluginApiVersion} or omit the property.`);
+    metadata.apiVersion = pluginApiVersion;
   }
   const activate = resolve(read('activate'));
   if ((activate.type !== 'FunctionDeclaration' && activate.type !== 'FunctionExpression' && activate.type !== 'ArrowFunctionExpression')
