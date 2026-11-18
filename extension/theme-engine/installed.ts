@@ -21,11 +21,15 @@ export class DuplicateThemeError extends Error {
   }
 }
 
-export async function installTheme(theme: Theme, replaceRevision?: string): Promise<void> {
-  const id = theme.metadata.id;
+export function assertInstallableTheme(id: string): void {
   if (id === defaultThemeId || discoverThemes().some(({ metadata }) => metadata.id === id)) {
     throw new Error(`"${id}" belongs to a bundled theme. Choose a different ID.`);
   }
+}
+
+export async function installTheme(theme: Theme, replaceRevision?: string): Promise<void> {
+  const id = theme.metadata.id;
+  assertInstallableTheme(id);
   await navigator.locks.request(themeLock, async () => {
     const saved = installedThemes(await browser.storage.local.get(installedThemesKey));
     const current = saved.find(({ metadata }) => metadata.id === id);

@@ -1,7 +1,7 @@
 import { BlobReader, ZipReader } from '@zip.js/zip.js';
-import { validateThemeCss } from './import';
-import { readMetadataJs } from './metadata';
-import { previewName, validatePreview, type ThemePreview } from './preview';
+import { validateThemeCss } from './import.ts';
+import { readMetadataJs } from './metadata.ts';
+import { previewName, validatePreview, type ThemePreview } from './preview.ts';
 import type { Theme } from './schema';
 
 function withFile<T>(name: string, read: () => T): T {
@@ -22,7 +22,9 @@ export async function readThemeZip(file: Blob): Promise<Theme> {
   if (file.size > 4_000_000) throw new Error('Expected a theme ZIP up to 4 MB.');
   const zip = new ZipReader(new BlobReader(file), { useWebWorkers: false });
   try {
-    const entries = await zip.getEntries();
+    const entries = await zip.getEntries().catch((error: unknown) => {
+      throw new Error(`Invalid ZIP directory. Expected a readable ZIP containing one theme folder. ${String(error)}`);
+    });
     if (entries.length > 4) throw new Error('Expected one folder with theme.css, metadata.js, and at most one preview.');
     let folder: string | undefined;
     const seen = new Set<string>();
@@ -75,6 +77,6 @@ export async function readThemeZip(file: Blob): Promise<Theme> {
     };
     return await validateThemeFiles(decode('theme.css'), decode('metadata.js'), preview);
   } finally {
-    await zip.close();
+    await zip.close().catch(() => {});
   }
 }
