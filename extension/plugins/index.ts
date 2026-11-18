@@ -1,7 +1,19 @@
 export interface Plugin {
   id: string;
+  name: string;
+  description: string;
+  version: string;
+  authors: readonly string[];
+  contributors?: readonly string[];
+  options?: Readonly<Record<string, PluginOption>>;
   activate(context: PluginContext): PluginHooks | void;
 }
+
+export type PluginOption = { label: string } & (
+  | { type: 'boolean'; default: boolean }
+  | { type: 'string'; default: string }
+  | { type: 'number'; default: number; min?: number; max?: number; integer?: boolean }
+);
 
 export interface PluginContext {
   onCleanup(cleanup: () => void): void;
@@ -32,8 +44,8 @@ async function loadPlugins(): Promise<Plugin[]> {
 
     const plugin = result.value.default;
     if (typeof plugin?.id !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(plugin.id)
-      || typeof plugin.activate !== 'function') {
-      console.error(`Plugin ${path} must export a plugin with a valid ID and activate function`);
+      || typeof plugin.activate !== 'function' || !hasValidMetadata(plugin)) {
+      console.error(`Plugin ${path} has an invalid definition`);
       continue;
     }
     if (plugins.has(plugin.id)) {
@@ -44,4 +56,15 @@ async function loadPlugins(): Promise<Plugin[]> {
   }
 
   return [...plugins.values()];
+}
+
+function hasValidMetadata(plugin: Plugin): boolean {
+  const { name, description, version, authors, contributors, options } = plugin;
+  return [name, description, version].every((value) => typeof value === 'string' && value.trim())
+    && Array.isArray(authors) && authors.every((author) => typeof author === 'string')
+    && (contributors === undefined
+      || (Array.isArray(contributors) && contributors.every((name) => typeof name === 'string')))
+    && (options === undefined || (options !== null && typeof options === 'object' && !Array.isArray(options)
+      && Object.values(options).every((option) => option && typeof option.label === 'string'
+        && ['boolean', 'string', 'number'].includes(option.type) && typeof option.default === option.type)));
 }
