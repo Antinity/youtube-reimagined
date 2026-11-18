@@ -8,6 +8,8 @@ import type { Theme } from '@/theme-engine/schema';
 import { readThemeSettings } from '@/theme-engine/settings';
 import { selectedThemeId } from '@/theme-engine/storage';
 
+type PluginFiles = Pick<InstalledPlugin, 'name' | 'source' | 'metadata'>;
+
 export interface Backup {
   version: 1;
   preferences: { selectedTheme: string | null };
@@ -15,12 +17,14 @@ export interface Backup {
     id: string;
     enabled: boolean;
     settings: ReturnType<typeof readPluginSettings>;
-    module?: Pick<InstalledPlugin, 'name' | 'source' | 'metadata'>;
+    module?: PluginFiles;
+    retained?: PluginFiles;
   }[];
   themes: {
     id: string;
     settings: ReturnType<typeof readThemeSettings>;
     module?: Theme;
+    retained?: Theme;
   }[];
 }
 
@@ -30,6 +34,7 @@ export async function createBackup(): Promise<Backup> {
   const userPlugins = Object.entries(values).filter(([key, value]) => isInstalledKey(key) && value)
     .map(([, value]) => value as InstalledPlugin);
   const userThemes = installedThemes(values);
+  const pluginFiles = ({ name, source, metadata }: InstalledPlugin): PluginFiles => ({ name, source, metadata });
   const pluginEntry = (metadata: InstalledPlugin['metadata']) => ({
     id: metadata.id, enabled: values[enabledKey(metadata.id)] === true, settings: readPluginSettings(metadata, values),
   });
@@ -37,9 +42,17 @@ export async function createBackup(): Promise<Backup> {
   return {
     version: 1,
     preferences: { selectedTheme: selectedThemeId(values) },
-    plugins: [...plugins.map(pluginEntry), ...userPlugins.filter(({ metadata }) => !plugins.some(({ id }) => id === metadata.id))
-      .map(({ name, source, metadata }) => ({ ...pluginEntry(metadata), module: { name, source, metadata } }))],
-    themes: [...themes.map(themeEntry), ...userThemes.filter(({ metadata }) => !themes.some((theme) => theme.metadata.id === metadata.id))
+    plugins: [...plugins.map((plugin) => {
+      const saved = userPlugins.find(({ metadata }) => metadata.id === plugin.id);
+      return { ...pluginEntry(plugin), ...(saved ? { retained: pluginFiles(saved) } : {}) };
+    }), ...userPlugins.filter(({ metadata }) => !plugins.some(({ id }) => id === metadata.id))
+      .map((plugin) => ({ ...pluginEntry(plugin.metadata), module: pluginFiles(plugin) }))],
+    themes: [...themes.map((theme) => {
+      const saved = userThemes.find(({ metadata }) => metadata.id === theme.metadata.id);
+      if (!saved) return themeEntry(theme);
+      const { revision: _revision, ...retained } = saved;
+      return { ...themeEntry(theme), retained };
+    }), ...userThemes.filter(({ metadata }) => !themes.some((theme) => theme.metadata.id === metadata.id))
       .map(({ revision: _revision, ...theme }) => ({ ...themeEntry(theme), module: theme }))],
   };
 }

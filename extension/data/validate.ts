@@ -51,6 +51,15 @@ function entry(value: unknown, path: string, seen: Set<string>): Record<string, 
   return { ...item, id: item.id };
 }
 
+function moduleFiles(item: Record<string, unknown>, path: string, bundled: boolean): unknown {
+  if (item.retained !== undefined) {
+    if (!bundled || item.module !== undefined) throw new Error(`${path}.retained: expected an inactive copy of a bundled module.`);
+    return item.retained;
+  }
+  if (bundled && item.module !== undefined) throw new Error(`${path}.module: cannot overwrite bundled module "${item.id}".`);
+  return item.module;
+}
+
 export async function validateBackup(source: string): Promise<ValidatedBackup> {
   if (source.length > 32_000_000) throw new Error('Expected a configuration backup up to 32 MB.');
   let json: unknown;
@@ -73,39 +82,41 @@ export async function validateBackup(source: string): Promise<ValidatedBackup> {
     const item = entry(value, path, plugIds);
     if (typeof item.enabled !== 'boolean') throw new Error(`${path}.enabled: expected true or false.`);
     const metadata = bundledPlugins.find(({ id }) => id === item.id);
-    if (item.module !== undefined) {
-      if (metadata) throw new Error(`${path}.module: cannot overwrite bundled plugin "${item.id}".`);
-      const module = record(item.module, `${path}.module`);
-      const name = string(module.name, `${path}.module.name`);
-      if (!/^[^/\\\x00-\x1f]+\.js$/i.test(name)) throw new Error(`${path}.module.name: expected a standalone .js filename.`);
+    const files = moduleFiles(item, path, Boolean(metadata));
+    if (files !== undefined) {
+      const filePath = `${path}.${metadata ? 'retained' : 'module'}`;
+      const module = record(files, filePath);
+      const name = string(module.name, `${filePath}.name`);
+      if (!/^[^/\\\x00-\x1f]+\.js$/i.test(name)) throw new Error(`${filePath}.name: expected a standalone .js filename.`);
       let validated;
       try {
         validated = validatePluginImport(name, string(module.source, 'source'));
       } catch (cause) {
-        throw new Error(`${path}.module (${name}): ${String(cause)}`);
+        throw new Error(`${filePath} (${name}): ${String(cause)}`);
       }
       if (validated.metadata.id !== item.id || canonical(validated.metadata) !== canonical(module.metadata)) {
-        throw new Error(`${path}.module.metadata: expected metadata and ID matching the plugin source.`);
+        throw new Error(`${filePath}.metadata: expected metadata and ID matching the plugin source.`);
       }
       pluginSources.set(item.id, validated);
     }
     const installed = pluginSources.get(item.id);
-    const schema = installed?.metadata ?? metadata;
+    const schema = metadata ?? installed?.metadata;
     if (!schema) throw new Error(`${path}.id: bundled plugin "${item.id}" is unavailable in this version.`);
     return {
       id: item.id, enabled: item.enabled, settings: settings(item.settings, schema.options, `${path}.settings`),
-      ...(installed ? { module: { name: installed.name, source: installed.source, metadata: installed.metadata } } : {}),
+      ...(installed ? { [metadata ? 'retained' : 'module']: { name: installed.name, source: installed.source, metadata: installed.metadata } } : {}),
     };
   });
   const themes = await Promise.all(list(backup.themes, 'themes').map(async (value, index) => {
     const path = `themes[${index}]`;
     const item = entry(value, path, themeIds);
     const bundled = bundledThemes.find(({ metadata }) => metadata.id === item.id);
+    const files = moduleFiles(item, path, Boolean(bundled));
     let theme;
-    if (item.module !== undefined) {
+    if (files !== undefined) {
       try {
-        assertInstallableTheme(item.id);
-        const module = record(item.module, 'module');
+        if (!bundled) assertInstallableTheme(item.id);
+        const module = record(files, 'module');
         const header = module.metadataSource === undefined
           ? `export default ${JSON.stringify(record(module.metadata, 'metadata'))};`
           : string(module.metadataSource, 'metadataSource');
@@ -134,12 +145,13 @@ export async function validateBackup(source: string): Promise<ValidatedBackup> {
           theme.legacySource = { name, source };
         }
       } catch (cause) {
-        throw new Error(`${path}.module: ${String(cause)}`);
+        throw new Error(`${path}.${bundled ? 'retained' : 'module'}: ${String(cause)}`);
       }
     }
-    const schema = theme?.metadata ?? bundled?.metadata;
+    const schema = bundled?.metadata ?? theme?.metadata;
     if (!schema) throw new Error(`${path}.id: bundled theme "${item.id}" is unavailable in this version.`);
-    return { id: item.id, settings: settings(item.settings, schema.options, `${path}.settings`, true), ...(theme ? { module: theme } : {}) };
+    return { id: item.id, settings: settings(item.settings, schema.options, `${path}.settings`, true),
+      ...(theme ? { [bundled ? 'retained' : 'module']: theme } : {}) };
   }));
   if (selected !== null && !themeIds.has(selected) && !bundledThemes.some(({ metadata }) => metadata.id === selected)) {
     throw new Error('preferences.selectedTheme: the selected theme is missing from the backup and bundled themes.');

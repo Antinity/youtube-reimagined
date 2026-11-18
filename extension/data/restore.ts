@@ -15,7 +15,7 @@ export async function restoreBackup(backup: ValidatedBackup, mode: RestoreMode, 
     const previous = await browser.storage.local.get(null);
     await browser.storage.local.set(restoreChanges(previous, backup, mode, enableImported));
   });
-  if (enableImported && backup.plugins.some(({ id, enabled }) => enabled && backup.pluginSources.has(id))) {
+  if (enableImported && backup.plugins.some(({ module, enabled }) => enabled && module)) {
     const unavailable = userScriptAccess();
     if (unavailable) return unavailable;
   }
@@ -44,12 +44,12 @@ function restoreChanges(previous: Readonly<Record<string, unknown>>, backup: Val
   }
   for (const item of backup.plugins) {
     const source = backup.pluginSources.get(item.id);
-    next[enabledKey(item.id)] = item.enabled && (!source || enableImported);
+    next[enabledKey(item.id)] = item.enabled && (!item.module || enableImported);
     if (source) {
       next[installedKey(item.id)] = { ...source, revision: crypto.randomUUID() };
       next[pluginErrorKey(item.id)] = null;
       for (const key of Object.keys(previous)) {
-        if (key.startsWith(`plugin:${item.id}:setting:`)) next[key] = null;
+        if (item.module && key.startsWith(`plugin:${item.id}:setting:`)) next[key] = null;
       }
     }
     for (const [key, value] of Object.entries(item.settings)) next[settingKey(item.id, key)] = value;
@@ -58,7 +58,8 @@ function restoreChanges(previous: Readonly<Record<string, unknown>>, backup: Val
   const themes = new Map((replace ? [] : installedThemes(previous)).map((theme) => [theme.metadata.id, theme]));
   const settings = replace ? {} : { ...(previous[themeSettingsKey] as Record<string, unknown> | undefined) };
   for (const item of backup.themes) {
-    if (item.module) themes.set(item.id, { ...item.module, revision: crypto.randomUUID() });
+    const module = item.module ?? item.retained;
+    if (module) themes.set(item.id, { ...module, revision: crypto.randomUUID() });
     const existing = Object.hasOwn(settings, item.id) && !item.module ? settings[item.id] : undefined;
     settings[item.id] = { ...(existing as Record<string, unknown> | undefined), ...item.settings };
   }

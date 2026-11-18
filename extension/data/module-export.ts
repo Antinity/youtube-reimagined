@@ -18,12 +18,14 @@ export async function exportModules(): Promise<Blob> {
   const files = new Set<string>();
   const folders = new Set<string>();
   try {
-    for (const { id, module } of backup.plugins) {
+    for (const { id, module: installed, retained } of backup.plugins) {
+      const module = installed ?? retained;
       if (!module) continue;
       const safe = /^[\w.-]+\.js$/i.test(module.name) ? module.name : `${id}.js`;
       await zip.add(`plugins/${uniqueName(safe, `${id}.js`, files)}`, new TextReader(module.source));
     }
-    for (const { id, module } of backup.themes) {
+    for (const { id, module: installed, retained } of backup.themes) {
+      const module = installed ?? retained;
       if (!module) continue;
       const safe = module.folder && /^[a-z0-9][a-z0-9._-]*$/i.test(module.folder) ? module.folder : id;
       const path = `themes/${uniqueName(safe, id, folders)}`;

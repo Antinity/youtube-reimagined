@@ -54,11 +54,13 @@ export default function DataManagement() {
       <details>
         <summary>Backup contents</summary>
         <ul>
-          {backup.plugins.map(({ id, enabled, module }) => <li key={`plugin:${id}`}>
+          {backup.plugins.map(({ id, enabled, module, retained }) => <li key={`plugin:${id}`}>
             Plugin {module?.metadata.name ?? id} · {enabled ? 'Enabled' : 'Disabled'}{module ? ' · Third-party' : ''}
+            {retained && <> · Keeps inactive imported copy {retained.metadata.name}</>}
           </li>)}
-          {backup.themes.map(({ id, module }) => <li key={`theme:${id}`}>
+          {backup.themes.map(({ id, module, retained }) => <li key={`theme:${id}`}>
             Theme {module?.metadata.name ?? id}{module ? ' · Imported' : ''}
+            {retained && <> · Keeps inactive imported copy {retained.metadata.name}</>}
           </li>)}
         </ul>
       </details>
