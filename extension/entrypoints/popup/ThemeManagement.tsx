@@ -23,7 +23,9 @@ function Preview({ image }: { image?: ThemePreview }) {
   return <img src={image && verified === image ? image.dataUrl : fallbackPreview} alt="" />;
 }
 
-export default function ThemeManagement({ detail, openDetail }: { detail?: string; openDetail: (id: string) => void }) {
+export default function ThemeManagement({ detail, openDetail, closeDetail }: {
+  detail?: string; openDetail: (id: string) => void; closeDetail: () => void;
+}) {
   const [bundled] = useState(discoverThemes);
   const [values, setValues] = useState<Readonly<Record<string, unknown>>>();
   const [error, setError] = useState('');
@@ -63,8 +65,9 @@ export default function ThemeManagement({ detail, openDetail }: { detail?: strin
         onSave={(active) => save(() => selectTheme(active ? detail : null))} />}
       onSave={(key, _, value) => save(() => setThemeSetting(theme, key, value))}
       remove={installed && (async () => {
-        if (await confirm({ title: 'Remove theme?', message: `Remove the imported copy of ${theme.metadata.name}.`,
-          action: 'Remove theme', destructive: true })) await save(() => removeTheme(installed));
+        if (!await confirm({ title: 'Remove theme?', message: `Remove the imported copy of ${theme.metadata.name}.`,
+          action: 'Remove theme', destructive: true })) return;
+        if (await save(() => removeTheme(installed)) && !bundled.includes(theme)) closeDetail();
       })} /> : <p>This theme is no longer installed.</p> : <>
       <h1 className="visually-hidden">Themes</h1>
       <Search label="Search themes" value={query} setValue={setQuery} />

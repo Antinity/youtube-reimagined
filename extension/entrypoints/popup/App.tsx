@@ -176,7 +176,7 @@ export default function App() {
   const back = detail ? () => setDetail(undefined) : transfer
     ? () => navigate(transfer === 'mods' ? 'settings' : 'add') : undefined;
 
-  return <Shell page={page} navigate={navigate} back={back}>
+  return <Shell page={page} panel={detail ?? transfer} navigate={navigate} back={back}>
     {error && <p className="notice error" role="alert">{error}</p>}
     {page === 'plugins' && <section className="page">
       <h1 className="visually-hidden">Plugins</h1>
@@ -190,7 +190,7 @@ export default function App() {
           <div className="cards">{pluginMatches?.map(renderPlugin)}</div>
         </>}
     </section>}
-    {page === 'themes' && <ThemeManagement detail={detail} openDetail={setDetail} />}
+    {page === 'themes' && <ThemeManagement detail={detail} openDetail={setDetail} closeDetail={() => setDetail(undefined)} />}
     {page === 'browse' && <section className="page"><h1>Browse</h1><p>Coming Soon</p></section>}
     {page === 'add' && <AddPage key={transfer ?? 'add'} modsOnly={transfer === 'mods'} openSettings={() => openTransfer('settings')} />}
     {page === 'settings' && <Settings values={preferences} focusImport={transfer === 'settings'} openMods={() => openTransfer('mods')} />}

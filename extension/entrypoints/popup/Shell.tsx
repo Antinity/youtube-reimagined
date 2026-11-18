@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { AppIcon, type IconName } from './Icon';
 import logo from '@/assets/logo.png';
 
@@ -13,9 +13,14 @@ const navigation: { page: Page; label: string; icon: IconName }[] = [
   { page: 'settings', label: 'Settings', icon: 'cog' },
 ];
 
-export function Shell({ page, navigate, back, children }: {
-  page: Page; navigate: (page: Page) => void; back?: () => void; children: ReactNode;
+export function Shell({ page, panel, navigate, back, children }: {
+  page: Page; panel?: string; navigate: (page: Page) => void; back?: () => void; children: ReactNode;
 }) {
+  const workspace = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    if (workspace.current) workspace.current.scrollTop = 0;
+  }, [page, panel]);
+
   return <div className="shell">
     <header className="app-header">
       <img src={logo} alt="" width={22} height={22} />
@@ -27,7 +32,7 @@ export function Shell({ page, navigate, back, children }: {
         aria-label={item.label} title={item.label} aria-current={page === item.page ? 'page' : undefined}
         onClick={() => navigate(item.page)}><AppIcon name={item.icon} size={22} /></button>)}
     </nav>
-    <main className="workspace">{children}</main>
+    <main className="workspace" ref={workspace}>{children}</main>
   </div>;
 }
 
