@@ -1,6 +1,6 @@
-import { Icon } from '@iconify/react';
+import { Icon } from '@iconify/react/offline';
 import puzzle from '@iconify-icons/mdi/puzzle';
-import brush from '@iconify-icons/mdi/format-paint';
+import brush from '@iconify-icons/mdi/brush-variant';
 import web from '@iconify-icons/mdi/web';
 import plus from '@iconify-icons/mdi/plus';
 import minus from '@iconify-icons/mdi/minus';
@@ -17,5 +17,5 @@ const icons = { puzzle, brush, web, plus, minus, help, cog, back, search, upload
 export type IconName = keyof typeof icons;
 
 export function AppIcon({ name, size = 24 }: { name: IconName; size?: number }) {
-  return <Icon icon={icons[name]} width={size} height={size} aria-hidden="true" />;
+  return <Icon icon={icons[name]} width={size} height={size} aria-hidden="true" ssr />;
 }

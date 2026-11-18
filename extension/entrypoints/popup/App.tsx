@@ -10,8 +10,9 @@ import {
 } from '@/plugin-engine/storage';
 import { refreshUserScriptsMessage, userScriptAccess } from '@/plugin-engine/user-scripts';
 import { AddPage } from './AddPage';
+import { appearanceKey, pauseModsKey, readAppearance } from '@/data/preferences';
 import ThemeManagement from './ThemeManagement';
-import DataManagement from './DataManagement';
+import { Settings } from './Settings';
 import { AppIcon } from './Icon';
 import { Badge, Search, Shell, type Page } from './Shell';
 import { useConfirm } from './Confirm';
@@ -21,6 +22,8 @@ import { Checkbox } from './Options';
 export default function App() {
   const [page, setPage] = useState<Page>('plugins');
   const [detail, setDetail] = useState<string>();
+  const [transfer, setTransfer] = useState<'mods' | 'settings'>();
+  const [preferences, setPreferences] = useState<Readonly<Record<string, unknown>>>({});
   const [query, setQuery] = useState('');
   const confirm = useConfirm();
   const [plugins, setPlugins] = useState<Plugin[]>();
@@ -28,6 +31,21 @@ export default function App() {
   const [values, setValues] = useState<Readonly<Record<string, unknown>>>();
   const [error, setError] = useState('');
   const [accessError, setAccessError] = useState(userScriptAccess);
+  const appearance = readAppearance(preferences);
+
+  useEffect(() => watchPluginStorage([appearanceKey, pauseModsKey], setPreferences,
+    (cause) => setError(`Could not read preferences. ${String(cause)}`)), []);
+
+  useEffect(() => {
+    const system = window.matchMedia('(prefers-color-scheme: dark)');
+    function updateAppearance() {
+      document.documentElement.dataset.appearance = appearance === 'system'
+        ? system.matches ? 'dark' : 'light' : appearance;
+    }
+    updateAppearance();
+    system.addEventListener('change', updateAppearance);
+    return () => system.removeEventListener('change', updateAppearance);
+  }, [appearance]);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,7 +127,13 @@ export default function App() {
 
   function navigate(next: Page) {
     setDetail(undefined);
+    setTransfer(undefined);
     setPage(next);
+  }
+
+  function openTransfer(kind: 'mods' | 'settings') {
+    navigate(kind === 'mods' ? 'add' : 'settings');
+    setTransfer(kind);
   }
 
   function renderPlugin({ plugin, thirdParty }: NonNullable<typeof entries>[number]) {
@@ -149,7 +173,10 @@ export default function App() {
     </article>;
   }
 
-  return <Shell page={page} navigate={navigate} back={detail ? () => setDetail(undefined) : undefined}>
+  const back = detail ? () => setDetail(undefined) : transfer
+    ? () => navigate(transfer === 'mods' ? 'settings' : 'add') : undefined;
+
+  return <Shell page={page} navigate={navigate} back={back}>
     {error && <p className="notice error" role="alert">{error}</p>}
     {page === 'plugins' && <section className="page">
       <h1 className="visually-hidden">Plugins</h1>
@@ -165,8 +192,8 @@ export default function App() {
     </section>}
     {page === 'themes' && <ThemeManagement detail={detail} openDetail={setDetail} />}
     {page === 'browse' && <section className="page"><h1>Browse</h1><p>Coming Soon</p></section>}
-    {page === 'add' && <AddPage modsOnly={false} openSettings={() => navigate('settings')} />}
-    {page === 'settings' && <section className="page"><DataManagement /></section>}
+    {page === 'add' && <AddPage key={transfer ?? 'add'} modsOnly={transfer === 'mods'} openSettings={() => openTransfer('settings')} />}
+    {page === 'settings' && <Settings values={preferences} focusImport={transfer === 'settings'} openMods={() => openTransfer('mods')} />}
     {page === 'about' && <section className="page settings-page"><h1>About</h1>
       <a href="https://github.com/Antinity/youtube-reimagined" target="_blank" rel="noreferrer">GitHub</a>
     </section>}
