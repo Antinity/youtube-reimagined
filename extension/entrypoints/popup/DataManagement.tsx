@@ -51,10 +51,24 @@ export default function DataManagement() {
       <legend>Restore preview</legend>
       <p>{backup.plugins.length} plugin configurations, {backup.themes.length} theme configurations</p>
       <p>Selected theme: {backup.preferences.selectedTheme ?? 'No theme'}</p>
-      <label>Restore mode <select value={mode} onChange={(event) => setMode(event.currentTarget.value as RestoreMode)}>
+      <details>
+        <summary>Backup contents</summary>
+        <ul>
+          {backup.plugins.map(({ id, enabled, module }) => <li key={`plugin:${id}`}>
+            Plugin {module?.metadata.name ?? id} · {enabled ? 'Enabled' : 'Disabled'}{module ? ' · Third-party' : ''}
+          </li>)}
+          {backup.themes.map(({ id, module }) => <li key={`theme:${id}`}>
+            Theme {module?.metadata.name ?? id}{module ? ' · Imported' : ''}
+          </li>)}
+        </ul>
+      </details>
+      <label htmlFor="backup-restore-mode">Restore mode</label>{' '}
+      <select id="backup-restore-mode" value={mode} onChange={(event) => setMode(event.currentTarget.value as RestoreMode)}>
         <option value="merge">Merge</option>
         <option value="replace">Replace</option>
-      </select></label>
+      </select>
+      <p>{mode === 'merge' ? 'Matching IDs use the backup. Other modules are kept.'
+        : 'User modules absent from the backup will be removed.'}</p>
       {backup.plugins.some(({ module, enabled }) => module && enabled) && <p><label>
         <input type="checkbox" checked={enableImported} onChange={(event) => setEnableImported(event.currentTarget.checked)} />
         Enable third-party plugins marked enabled in this backup
@@ -68,7 +82,23 @@ export default function DataManagement() {
           return notice;
         }, 'Configuration restored.');
       }}>Restore configuration</button>
+      <button disabled={busy} onClick={() => setBackup(undefined)}>Cancel restore</button>
     </fieldset>}
+    <fieldset>
+      <legend>Reset data</legend>
+      {([
+        ['Reset preferences', 'Reset all preferences to their defaults? Installed modules will be kept.', 'resetPreferences', 'Preferences reset.'],
+        ['Remove user modules', 'Remove all user-installed plugins and themes and their settings?', 'removeUserModules', 'User modules removed.'],
+        ['Reset all data', 'Erase all configuration and user-installed modules?', 'resetAllData', 'Extension data reset.'],
+      ] as const).map(([label, confirmation, action, success]) => <button key={action} disabled={busy} onClick={() => {
+        if (!window.confirm(confirmation)) return;
+        void run(async () => {
+          const reset = await import('@/data/reset');
+          await reset[action]();
+          setBackup(undefined);
+        }, success);
+      }}>{label}</button>)}
+    </fieldset>
     {message && <p role="status">{message}</p>}
     {error && <p role="alert">{error}</p>}
   </section>;

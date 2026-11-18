@@ -12,6 +12,7 @@ import { refreshUserScriptsMessage, userScriptAccess } from '@/plugin-engine/use
 import PluginImport from './PluginImport';
 import ThemeManagement from './ThemeManagement';
 import DataManagement from './DataManagement';
+import ResetModuleSettings from './ResetModuleSettings';
 import { Checkbox, OptionFields } from './Options';
 
 export default function App() {
@@ -137,6 +138,7 @@ export default function App() {
             }}>{thirdParty ? 'Remove' : 'Remove imported copy'}</button></>}
             {plugin.options && Object.keys(plugin.options).length > 0 && <details>
               <summary>{plugin.name} settings</summary>
+              <ResetModuleSettings kind="plugin" id={plugin.id} name={plugin.name} />
               <OptionFields options={plugin.options} settings={settings}
                 onSave={(key, option, next) => saveSetting(plugin, thirdParty, key, option, next)} />
             </details>}

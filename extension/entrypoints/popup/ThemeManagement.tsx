@@ -6,6 +6,7 @@ import { readThemeSettings } from '@/theme-engine/settings';
 import { removeTheme, selectedThemeId, selectTheme, setThemeSetting, watchThemeStorage } from '@/theme-engine/storage';
 import { OptionFields } from './Options';
 import ThemeImport from './ThemeImport';
+import ResetModuleSettings from './ResetModuleSettings';
 import { fallbackPreview, validatePreview, type ThemePreview } from '@/theme-engine/preview';
 
 function Preview({ image }: { image?: ThemePreview }) {
@@ -70,7 +71,7 @@ export default function ThemeManagement() {
             metadata.contributors?.length ? `Contributors: ${metadata.contributors.join(', ')}` : '',
             `v${metadata.version}`, installed ? 'Imported' : 'Bundled'].filter(Boolean).join(' · ')}</p>
           {metadata.license && <p>License {metadata.license}</p>}
-          {metadata.homepage && <p><a href={metadata.homepage} target="_blank" rel="noopener noreferrer">Theme homepage</a></p>}
+          {metadata.homepage?.startsWith('https://') && <p><a href={metadata.homepage} target="_blank" rel="noopener noreferrer">Theme homepage</a></p>}
           {installed && <button aria-label={`Remove theme ${metadata.name}`} onClick={async () => {
             setError('');
             try {
@@ -81,6 +82,7 @@ export default function ThemeManagement() {
           }}>Remove</button>}
           {metadata.options && Object.keys(metadata.options).length > 0 && <details>
             <summary>{metadata.name} settings</summary>
+            <ResetModuleSettings kind="theme" id={metadata.id} name={metadata.name} />
             <OptionFields options={metadata.options} settings={readThemeSettings(theme, values)} onSave={async (key, _, value) => {
               setError('');
               try {
