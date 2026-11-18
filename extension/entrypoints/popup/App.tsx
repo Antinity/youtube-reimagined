@@ -9,10 +9,9 @@ import {
   enabledKey, pluginStorageKeys, readPluginSettings, setPluginEnabled, setPluginSetting, watchPluginStorage,
 } from '@/plugin-engine/storage';
 import { refreshUserScriptsMessage, userScriptAccess } from '@/plugin-engine/user-scripts';
-import PluginImport from './PluginImport';
+import { AddPage } from './AddPage';
 import ThemeManagement from './ThemeManagement';
 import DataManagement from './DataManagement';
-import ThemeImport from './ThemeImport';
 import { AppIcon } from './Icon';
 import { Badge, Search, Shell, type Page } from './Shell';
 import { useConfirm } from './Confirm';
@@ -166,7 +165,7 @@ export default function App() {
     </section>}
     {page === 'themes' && <ThemeManagement detail={detail} openDetail={setDetail} />}
     {page === 'browse' && <section className="page"><h1>Browse</h1><p>Coming Soon</p></section>}
-    {page === 'add' && <section className="page"><PluginImport bundledIds={plugins?.map(({ id }) => id)} /><ThemeImport /></section>}
+    {page === 'add' && <AddPage modsOnly={false} openSettings={() => navigate('settings')} />}
     {page === 'settings' && <section className="page"><DataManagement /></section>}
     {page === 'about' && <section className="page settings-page"><h1>About</h1>
       <a href="https://github.com/Antinity/youtube-reimagined" target="_blank" rel="noreferrer">GitHub</a>
