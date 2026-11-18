@@ -1,6 +1,6 @@
 import { isValidOptionValue } from './options';
 
-export interface Plugin {
+export interface PluginMetadata {
   id: string;
   name: string;
   description: string;
@@ -8,6 +8,10 @@ export interface Plugin {
   authors: readonly string[];
   contributors?: readonly string[];
   options?: Readonly<Record<string, PluginOption>>;
+  apiVersion?: 1;
+}
+
+export interface Plugin extends PluginMetadata {
   activate(context: PluginContext): PluginHooks | void;
 }
 

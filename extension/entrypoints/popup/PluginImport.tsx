@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { validatePluginImport, type PluginImportCandidate } from '@/plugin-engine/import';
 
 export default function PluginImport() {
-  const [selected, setSelected] = useState<{ name: string; source: string }>();
+  const [selected, setSelected] = useState<PluginImportCandidate>();
   const [error, setError] = useState('');
+  const latestFile = useRef(0);
 
   return <section>
     <label>Import a JavaScript plugin <input type="file" accept=".js" onChange={async (event) => {
@@ -10,6 +12,7 @@ export default function PluginImport() {
       const file = input.files?.[0];
       input.value = '';
       if (!file) return;
+      const selection = ++latestFile.current;
       setSelected(undefined);
       setError('');
       if (!/\.js$/i.test(file.name)) {
@@ -17,12 +20,13 @@ export default function PluginImport() {
         return;
       }
       try {
-        setSelected({ name: file.name, source: await file.text() });
+        const source = await file.text();
+        if (selection === latestFile.current) setSelected(validatePluginImport(file.name, source));
       } catch (cause) {
-        setError(`Could not read ${file.name}. ${String(cause)}`);
+        if (selection === latestFile.current) setError(`${file.name}: ${cause instanceof Error ? cause.message : String(cause)}`);
       }
     }} /></label>
-    {selected && <p>Selected {selected.name}</p>}
+    {selected && <p>{selected.metadata.name} {selected.metadata.version} ({selected.metadata.id})</p>}
     {error && <p role="alert">{error}</p>}
   </section>;
 }
