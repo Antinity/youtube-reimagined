@@ -1,94 +1,93 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import logo from '../../assets/logo.png'
 import plugins from '../../assets/screenshots/plugins.png'
 import themes from '../../assets/screenshots/themes.png'
 import settings from '../../assets/screenshots/settings.png'
 import github from './assets/github.svg'
-import liquidType from './liquidType'
+import credits from './assets/feed/credits.json'
+import Demo from './Demo'
 import './App.css'
 
 const repo = 'https://github.com/Antinity/youtube-reimagined'
-const releases = repo + '/releases'
 const guide = repo + '/blob/main/docs/user-guide.md'
 const panels = [
   {
     name: 'Plugins',
     image: plugins,
-    alt: 'Plugins panel with controls for Fullscreen Theater Mode, Hide Shorts and Videos Per Row',
+    description:
+      'Set one to twelve videos per row on desktop, hide Shorts on the pages you choose, or open videos in fullscreen theater mode.',
   },
   {
     name: 'Themes',
     image: themes,
-    alt: 'Themes panel with the Custom Colors theme',
+    description:
+      'Choose a light and a dark palette for YouTube. Set the background, text, and accent colors separately.',
   },
   {
     name: 'Settings',
     image: settings,
-    alt: 'Settings panel with appearance and backup controls',
+    description:
+      'Pause all mods, back up your configuration, or restore your saved settings when you switch browsers.',
   },
 ]
-
 function Brand() {
   return (
     <a className="brand" href="#top">
-      <img width="512" height="512" src={logo} alt="" />
+      <img width="32" height="32" src={logo} alt="" />
       YouTube Reimagined
     </a>
   )
 }
-
 function Download() {
   return (
-    <a className="download" href={releases}>
-      <img width="19" height="19" src={github} alt="" />
+    <a className="download" href={repo + '/releases'}>
+      <img width="20" height="20" src={github} alt="" />
       Get it on GitHub <span aria-hidden="true">↗</span>
     </a>
   )
 }
-
-function Preview() {
+function Features() {
   const [panel, setPanel] = useState(panels[0])
   return (
-    <div className="preview app-frame" aria-label="Extension preview">
-      <div className="preview-bar">
-        <span className="preview-label">
-          <i /> Popup preview
-        </span>
-        <div className="switches" aria-label="Preview panels">
-          {panels.map((item) => (
-            <button
-              key={item.name}
-              aria-pressed={panel === item}
-              onClick={() => setPanel(item)}
-            >
-              {item.name}
-            </button>
-          ))}
+    <section className="features" id="features">
+      <div className="wrap feature-grid">
+        <div>
+          <h2>Inside the extension</h2>
+          <div className="feature-options" aria-label="Extension screenshots">
+            {panels.map((item) => (
+              <div key={item.name}>
+                <button
+                  aria-pressed={panel === item}
+                  onClick={() => setPanel(item)}
+                >
+                  {item.name}
+                  <span aria-hidden="true">{panel === item ? '−' : '+'}</span>
+                </button>
+                {panel === item && <p>{item.description}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="capture">
+          <img
+            width="591"
+            height="849"
+            src={panel.image}
+            loading="lazy"
+            alt={panel.name + ' panel in the extension'}
+          />
         </div>
       </div>
-      <div className="stage" data-visual>
-        <div className="ident" aria-hidden="true">
-          <div className="orbits" />
-          <img width="512" height="512" src={logo} alt="" />
-        </div>
-        <div className="popup" key={panel.name} role="region" aria-label={panel.name + " screenshot"} tabIndex={0}>
-          <img width="609" height="867" src={panel.image} alt={panel.alt} />
-        </div>
-      </div>
-    </div>
+    </section>
   )
 }
-
 function Installation() {
   const [browser, setBrowser] = useState('Chrome')
   return (
     <section className="installation" id="install">
       <div className="wrap install-grid">
         <div>
-          <h2>
-            Install the <br />
-            extension<span>.</span>
-          </h2>
+          <h2>Install the extension</h2>
           <p>
             Choose your browser, then download its ZIP from GitHub Releases.
           </p>
@@ -148,22 +147,9 @@ function Installation() {
 }
 
 export default function App() {
-  const heading = useRef(null)
-  useEffect(() => {
-    const moment = liquidType(
-      heading.current,
-      { strength: 0.4 },
-      {
-        reduced: () => matchMedia('(prefers-reduced-motion: reduce)').matches,
-        coarse: () => matchMedia('(pointer: coarse)').matches,
-        clamp: (n, min = 0, max = 1) => Math.min(max, Math.max(min, n)),
-      },
-    )
-    return () => moment.destroy?.()
-  }, [])
   return (
     <div id="top">
-      <a href="#main" className="skip">
+      <a className="skip" href="#main">
         Skip to content
       </a>
       <header className="wrap">
@@ -171,68 +157,29 @@ export default function App() {
         <nav aria-label="Main navigation">
           <a href="#features">Features</a>
           <a href="#install">Installation</a>
-          <a href={guide}>Docs ↗</a>
+          <a href={guide}>User guide ↗</a>
         </nav>
       </header>
       <main id="main">
-        <section className="hero" data-enter>
-          <div className="wrap">
-            <div className="intro">
-              <div className="platform">
-                <i /> Chrome &amp; Firefox extension
-              </div>
-              <h1 ref={heading} data-moment="liquid-type">
-                Your YouTube, <em>remixed.</em>
-              </h1>
+        <section className="hero wrap">
+          <div className="hero-copy">
+            <h1>
+              Your YouTube,
+              <br />
+              <span className="edit">your layout</span>
+            </h1>
+            <div className="lead">
               <p>
-                Hide Shorts, reshape your video grid, and give theater mode the
-                whole screen. Pick the plugins and colors that feel like you.
+                Hide Shorts, fit more videos on a row, or give the player the
+                whole screen. Try the controls below.
               </p>
               <Download />
-            </div>
-            <Preview />
-          </div>
-        </section>
-        <section id="features" className="features">
-          <div className="wrap">
-            <h2>
-              Inside the <em>extension.</em>
-            </h2>
-            <div className="feature-list">
-              {[
-                [
-                  'Video grids',
-                  'Set one to twelve videos per row on desktop. Adjust the spacing, dim watched thumbnails, or hide videos you’ve already seen.',
-                ],
-                [
-                  'Hide Shorts',
-                  'Choose where Shorts appear. Keep them on channel pages while clearing them from Home, search, or subscriptions.',
-                ],
-                [
-                  'Theater mode',
-                  'Give the player your full viewport. Bring the search bar back by hovering at the top edge or tabbing into the header.',
-                ],
-                [
-                  'Custom colors',
-                  'Set separate light and dark palettes for YouTube. Switching themes preserves the colors you picked.',
-                ],
-              ].map(([title, body], i) => (
-                <article key={title}>
-                  <div className={'glyph glyph-' + i} aria-hidden="true">
-                    <i />
-                    <i />
-                    <i />
-                    <i />
-                    <i />
-                    <i />
-                  </div>
-                  <h3>{title}</h3>
-                  <p>{body}</p>
-                </article>
-              ))}
+              <small>For Chrome and Firefox</small>
             </div>
           </div>
+          <Demo />
         </section>
+        <Features />
         <Installation />
       </main>
       <footer className="wrap">
@@ -242,6 +189,17 @@ export default function App() {
           <a href={repo + '/blob/main/docs/privacy-policy.md'}>Privacy ↗</a>
           <a href={repo + '/blob/main/LICENSE'}>GPL-3.0 ↗</a>
         </nav>
+        <details>
+          <summary>Demo photo credits</summary>
+          <ul>
+            {credits.map((photo) => (
+              <li key={photo.title}>
+                <a href={photo.source}>{photo.title}</a> · {photo.by} ·{' '}
+                <a href={photo.terms}>{photo.license}</a> · cropped for display
+              </li>
+            ))}
+          </ul>
+        </details>
       </footer>
     </div>
   )
