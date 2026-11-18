@@ -9,13 +9,19 @@ const plugin = {
   authors: ['YouTube Reimagined'],
   contributors: ['Antinity'],
   options: {
-    homepage: { type: 'boolean', label: 'Homepage', default: true },
-    sidebar: { type: 'boolean', label: 'Sidebar', default: true },
-    search: { type: 'boolean', label: 'Search', default: true },
-    subscriptions: { type: 'boolean', label: 'Subscriptions', default: true },
-    channel: { type: 'boolean', label: 'Channel', default: true },
-    hashtags: { type: 'boolean', label: 'Hashtags', default: true },
-    description: { type: 'boolean', label: 'Watch page', default: true },
+    surfaces: {
+      type: 'group',
+      label: 'Where to hide Shorts',
+      options: {
+        homepage: { type: 'boolean', label: 'Homepage', default: true },
+        sidebar: { type: 'boolean', label: 'Sidebar', tooltip: 'Hides the Shorts shortcut in YouTube navigation.', default: true },
+        search: { type: 'boolean', label: 'Search', default: true },
+        subscriptions: { type: 'boolean', label: 'Subscriptions', default: true },
+        channel: { type: 'boolean', label: 'Channel', default: true },
+        hashtags: { type: 'boolean', label: 'Hashtags', default: true },
+        description: { type: 'boolean', label: 'Watch page', default: true },
+      },
+    },
   },
   activate({ settings, onCleanup }) {
     const style = document.createElement('style');

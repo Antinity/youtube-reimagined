@@ -1,5 +1,5 @@
 import { parse, type AnyNode, type Expression, type Node } from 'acorn';
-import { isNonEmptyText, isPluginId, pluginApiVersion, type PluginMetadata, type PluginOption } from './schema.ts';
+import { isNonEmptyText, isPluginId, pluginApiVersion, type PluginMetadata, type PluginOption, type PluginOptions } from './schema.ts';
 import { isValidOptionValue } from './options.ts';
 
 export interface PluginImportCandidate {
@@ -136,17 +136,35 @@ export function validatePluginImport(name: string, source: string): PluginImport
     fail(read('activate'), 'Plugin.activate must be a synchronous function, for example activate({ settings, onCleanup }) {}.');
   }
 
-  const options = fields.get('options');
-  if (options) {
-    metadata.options = Object.fromEntries([...properties(options, 'Plugin.options')].map(([key, node]) => {
-      const path = `Plugin.options.${key}`;
+  const leaves = new Map<string, string>();
+  function readOptions(options: AnyNode, parent: string, ancestors = new Set<AnyNode>()): PluginOptions {
+    const object = resolve(options);
+    if (ancestors.has(object)) fail(options, `${parent} must not contain itself.`);
+    const parents = new Set(ancestors).add(object);
+    return Object.fromEntries([...properties(options, parent)].map(([key, node]) => {
+      const path = `${parent}.${key}`;
       if (!key.trim()) fail(node, 'Plugin option names must be non-empty strings.');
       const optionFields = properties(node, path);
-      const typeNode = required(optionFields, node, 'type', 'boolean, string, number, range or select');
+      const typeNode = required(optionFields, node, 'type', 'group, boolean, string, number, range or select');
       const type = string(typeNode, `${path}.type`);
       const label = string(required(optionFields, node, 'label', 'a non-empty option label'), `${path}.label`);
+      const tooltipNode = optionFields.get('tooltip');
+      const tooltip = tooltipNode ? { tooltip: string(tooltipNode, `${path}.tooltip`) } : {};
+      if (type === 'group') {
+        const children = required(optionFields, node, 'options', 'an object containing nested options');
+        const defaultNode = optionFields.get('default');
+        if (defaultNode) fail(defaultNode, `${path}.default belongs on a setting inside the group.`);
+        return [key, { type, label, ...tooltip, options: readOptions(children, `${path}.options`, parents) }];
+      }
+      const children = optionFields.get('options');
+      if (children) fail(children, `${path}.options requires type: "group".`);
+      const previous = leaves.get(key);
+      if (previous) fail(node, `Duplicate setting ID "${key}" at ${path}. It is already used by ${previous}.`);
+      leaves.set(key, path);
       const defaultNode = required(optionFields, node, 'default', `a default value for the ${type} option`);
-      const option: Record<string, unknown> = { type, label, default: literal(defaultNode, `${path}.default`) };
+      const option: { type: string; label: string; default: unknown; [key: string]: unknown } = {
+        type, label, ...tooltip, default: literal(defaultNode, `${path}.default`),
+      };
       const group = optionFields.get('group');
       if (group) option.group = string(group, `${path}.group`);
       switch (type) {
@@ -179,7 +197,7 @@ export function validatePluginImport(name: string, source: string): PluginImport
         case 'string':
           break;
         default:
-          fail(typeNode, `${path}.type must be boolean, string, number, range or select.`);
+          fail(typeNode, `${path}.type must be group, boolean, string, number, range or select.`);
       }
       const definition = option as PluginOption;
       if (!isValidOptionValue(definition, definition.default)) {
@@ -188,6 +206,8 @@ export function validatePluginImport(name: string, source: string): PluginImport
       return [key, definition];
     }));
   }
+  const options = fields.get('options');
+  if (options) metadata.options = readOptions(options, 'Plugin.options');
 
   // Preserve the position and evaluation order of statements around the export.
   let result = '__yrPlugin';

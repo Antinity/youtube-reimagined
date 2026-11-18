@@ -1,11 +1,5 @@
 // @ts-check
 
-const layout = 'Home and video grids';
-const typography = 'Typography';
-const search = 'Search results';
-const watch = 'Watch page';
-const filters = 'Filters and visibility';
-
 /** @type {import('../plugin-engine').Plugin} */
 const plugin = {
   id: 'videos-per-row',
@@ -15,48 +9,80 @@ const plugin = {
   authors: ['YouTube Reimagined'],
   contributors: ['Antinity'],
   options: {
-    enableHomeTweaks: { group: layout, type: 'boolean', label: 'Customize video grids', default: true },
-    columns: { group: layout, type: 'number', label: 'Videos per row', default: 4, min: 1, max: 12, integer: true },
-    horizontalGap: { group: layout, type: 'number', label: 'Column gap (px)', default: 8, min: 0, max: 200, integer: true },
-    verticalGap: { group: layout, type: 'number', label: 'Row gap (px)', default: 10, min: 0, max: 200, integer: true },
-    homeWidth: { group: layout, type: 'range', label: 'Home width (%)', default: 100, min: 0, max: 100 },
-    hideGameShelf: { group: layout, type: 'boolean', label: 'Hide game shelf', default: false },
-
-    enableTypography: { group: typography, type: 'boolean', label: 'Customize typography', default: true },
-    titleSize: { group: typography, type: 'number', label: 'Title size (rem)', default: 1.4, min: 1, max: 6, step: 0.1 },
-    titleWeight: { group: typography, type: 'number', label: 'Title weight', default: 500, min: 100, max: 900, step: 100 },
-    metadataSize: { group: typography, type: 'number', label: 'Metadata size (rem)', default: 1.3, min: 1, max: 6, step: 0.1 },
-    metadataWeight: { group: typography, type: 'number', label: 'Metadata weight', default: 400, min: 100, max: 900, step: 100 },
-
-    enableSearch: { group: search, type: 'boolean', label: 'Customize search', default: true },
-    searchWidth: { group: search, type: 'select', label: 'Results width', default: 'default',
-      choices: { default: 'Default', full: 'Full' } },
-    searchAlignment: { group: search, type: 'select', label: 'Header alignment (full width)', default: 'default',
-      choices: { default: 'Default', center: 'Center', left: 'Left', right: 'Right' } },
-    searchGrid: { group: search, type: 'boolean', label: 'Use a search grid', default: false },
-    searchColumns: { group: search, type: 'number', label: 'Search columns', default: 6, min: 1, max: 12, integer: true },
-    searchThumbnailWidth: { group: search, type: 'number', label: 'List thumbnail width (px)', default: 240, min: 50, max: 900, integer: true },
-    hideSearchShorts: { group: search, type: 'boolean', label: 'Hide Shorts in search', default: false },
-    hideExpandableMetadata: { group: search, type: 'boolean', label: 'Hide expandable metadata', default: false },
-    hideSearchRecommendations: { group: search, type: 'boolean', label: 'Hide recommended shelves', default: false },
-
-    enableWatch: { group: watch, type: 'boolean', label: 'Customize watch page', default: true },
-    watchGrid: { group: watch, type: 'boolean', label: 'Stack related thumbnails above titles', default: false },
-    customWatchThumbnailWidth: { group: watch, type: 'boolean', label: 'Set related thumbnail width', default: false },
-    watchThumbnailWidth: { group: watch, type: 'number', label: 'Related thumbnail width (rem)', default: 20, min: 0, max: 100, integer: true },
-    hideHoverPreview: { group: watch, type: 'boolean', label: 'Hide video preview on hover', default: false },
-
-    enableFilters: { group: filters, type: 'boolean', label: 'Apply visibility filters', default: true },
-    viewedMode: { group: filters, type: 'select', label: 'Viewed videos', default: 'none',
-      choices: { none: 'Keep', grayscale: 'Grayscale', remove: 'Hide' } },
-    viewedStyle: { group: filters, type: 'select', label: 'Grayscale target', default: 'all',
-      choices: { all: 'Entire card', thumbnail: 'Thumbnail', progress: 'Progress bar', both: 'Thumbnail and progress bar' } },
-    grayscale: { group: filters, type: 'range', label: 'Grayscale intensity (%)', default: 80, min: 0, max: 100 },
-    hideBanners: { group: filters, type: 'boolean', label: 'Hide banners and surveys', default: false },
-    hideShorts: { group: filters, type: 'boolean', label: 'Hide Shorts across YouTube', default: false },
-    hideAutoDubbed: { group: filters, type: 'boolean', label: 'Hide auto-dubbed videos', default: false },
-    hideMixes: { group: filters, type: 'boolean', label: 'Hide YouTube Mixes', default: false },
-    hideMembersOnly: { group: filters, type: 'boolean', label: 'Hide members-only videos', default: false },
+    layout: {
+      type: 'group',
+      label: 'Home and video grids',
+      options: {
+        enableHomeTweaks: { type: 'boolean', label: 'Customize video grids', default: true },
+        columns: { type: 'number', label: 'Videos per row', tooltip: 'Applies to desktop video grids such as Home and channel videos.', default: 4, min: 1, max: 12, integer: true },
+        spacing: {
+          type: 'group',
+          label: 'Spacing',
+          options: {
+            horizontalGap: { type: 'number', label: 'Column gap (px)', default: 8, min: 0, max: 200, integer: true },
+            verticalGap: { type: 'number', label: 'Row gap (px)', default: 10, min: 0, max: 200, integer: true },
+          },
+        },
+        homeWidth: { type: 'range', label: 'Home width (%)', default: 100, min: 0, max: 100 },
+        hideGameShelf: { type: 'boolean', label: 'Hide game shelf', default: false },
+      },
+    },
+    typography: {
+      type: 'group',
+      label: 'Typography',
+      options: {
+        enableTypography: { type: 'boolean', label: 'Customize typography', default: true },
+        titleSize: { type: 'number', label: 'Title size (rem)', default: 1.4, min: 1, max: 6, step: 0.1 },
+        titleWeight: { type: 'number', label: 'Title weight', default: 500, min: 100, max: 900, step: 100 },
+        metadataSize: { type: 'number', label: 'Metadata size (rem)', default: 1.3, min: 1, max: 6, step: 0.1 },
+        metadataWeight: { type: 'number', label: 'Metadata weight', default: 400, min: 100, max: 900, step: 100 },
+      },
+    },
+    search: {
+      type: 'group',
+      label: 'Search results',
+      options: {
+        enableSearch: { type: 'boolean', label: 'Customize search', default: true },
+        searchWidth: { type: 'select', label: 'Results width', default: 'default',
+          choices: { default: 'Default', full: 'Full' } },
+        searchAlignment: { type: 'select', label: 'Header alignment', tooltip: 'Applies when Results width is set to Full.', default: 'default',
+          choices: { default: 'Default', center: 'Center', left: 'Left', right: 'Right' } },
+        searchGrid: { type: 'boolean', label: 'Use a search grid', default: false },
+        searchColumns: { type: 'number', label: 'Search columns', default: 6, min: 1, max: 12, integer: true },
+        searchThumbnailWidth: { type: 'number', label: 'List thumbnail width (px)', tooltip: 'Applies when the search grid is off.', default: 240, min: 50, max: 900, integer: true },
+        hideSearchShorts: { type: 'boolean', label: 'Hide Shorts in search', default: false },
+        hideExpandableMetadata: { type: 'boolean', label: 'Hide expandable metadata', default: false },
+        hideSearchRecommendations: { type: 'boolean', label: 'Hide recommended shelves', default: false },
+      },
+    },
+    watch: {
+      type: 'group',
+      label: 'Watch page',
+      options: {
+        enableWatch: { type: 'boolean', label: 'Customize watch page', default: true },
+        watchGrid: { type: 'boolean', label: 'Stack related thumbnails above titles', default: false },
+        customWatchThumbnailWidth: { type: 'boolean', label: 'Set related thumbnail width', default: false },
+        watchThumbnailWidth: { type: 'number', label: 'Related thumbnail width (rem)', tooltip: 'Enable custom width and turn off thumbnail stacking to use this value.', default: 20, min: 0, max: 100, integer: true },
+        hideHoverPreview: { type: 'boolean', label: 'Hide video preview on hover', default: false },
+      },
+    },
+    filters: {
+      type: 'group',
+      label: 'Filters and visibility',
+      options: {
+        enableFilters: { type: 'boolean', label: 'Apply visibility filters', default: true },
+        viewedMode: { type: 'select', label: 'Viewed videos', default: 'none',
+          choices: { none: 'Keep', grayscale: 'Grayscale', remove: 'Hide' } },
+        viewedStyle: { type: 'select', label: 'Grayscale target', tooltip: 'Selects which part of a viewed video is desaturated in Grayscale mode.', default: 'all',
+          choices: { all: 'Entire card', thumbnail: 'Thumbnail', progress: 'Progress bar', both: 'Thumbnail and progress bar' } },
+        grayscale: { type: 'range', label: 'Grayscale intensity (%)', default: 80, min: 0, max: 100 },
+        hideBanners: { type: 'boolean', label: 'Hide banners and surveys', default: false },
+        hideShorts: { type: 'boolean', label: 'Hide Shorts across YouTube', default: false },
+        hideAutoDubbed: { type: 'boolean', label: 'Hide auto-dubbed videos', default: false },
+        hideMixes: { type: 'boolean', label: 'Hide YouTube Mixes', default: false },
+        hideMembersOnly: { type: 'boolean', label: 'Hide members-only videos', default: false },
+      },
+    },
   },
   activate({ settings, onCleanup }) {
     if (location.hostname !== 'www.youtube.com') return;

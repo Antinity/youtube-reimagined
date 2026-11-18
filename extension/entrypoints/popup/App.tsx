@@ -1,6 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { browser } from 'wxt/browser';
-import { discoverPlugins, type Plugin, type PluginMetadata, type PluginOption, type PluginOptionValue } from '@/plugin-engine';
+import { discoverPlugins, type Plugin, type PluginMetadata, type PluginOption, type PluginOptions, type PluginOptionValue, type PluginSettings } from '@/plugin-engine';
 import {
   pluginErrorKey, removePlugin, setInstalledEnabled, setInstalledSetting, watchInstalledPlugins,
   type InstalledPluginError, type InstalledPluginInfo,
@@ -10,8 +10,10 @@ import {
 } from '@/plugin-engine/storage';
 import { refreshUserScriptsMessage, userScriptAccess } from '@/plugin-engine/user-scripts';
 import PluginImport from './PluginImport';
+import './option-help.css';
 
-function Checkbox({ checked, label, disabled, onSave }: {
+function Checkbox({ id, checked, label, disabled, onSave }: {
+  id?: string;
   checked: boolean;
   label?: string;
   disabled?: boolean;
@@ -24,7 +26,7 @@ function Checkbox({ checked, label, disabled, onSave }: {
     if (input.current) input.current.checked = checked;
   }, [checked]);
 
-  return <input ref={input} type="checkbox" aria-label={label} defaultChecked={checked} disabled={disabled}
+  return <input id={id} ref={input} type="checkbox" aria-label={label} defaultChecked={checked} disabled={disabled}
     onChange={async ({ currentTarget }) => {
       const write = ++latestWrite.current;
       if (!await onSave(currentTarget.checked) && write === latestWrite.current) {
@@ -33,7 +35,8 @@ function Checkbox({ checked, label, disabled, onSave }: {
     }} />;
 }
 
-function OptionInput({ option, value, onSave }: {
+function OptionInput({ id, option, value, onSave }: {
+  id: string;
   option: PluginOption;
   value: PluginOptionValue;
   onSave: (value: PluginOptionValue) => Promise<boolean>;
@@ -46,10 +49,10 @@ function OptionInput({ option, value, onSave }: {
   }, [value]);
 
   if (option.type === 'boolean') {
-    return <Checkbox checked={value === true} onSave={onSave} />;
+    return <Checkbox id={id} checked={value === true} onSave={onSave} />;
   }
   if (option.type === 'select') {
-    return <select ref={select} defaultValue={String(value)} onChange={async ({ currentTarget }) => {
+    return <select id={id} ref={select} defaultValue={String(value)} onChange={async ({ currentTarget }) => {
       const next = currentTarget.value;
       if (!await onSave(next) && currentTarget.value === next) currentTarget.value = String(value);
     }}>
@@ -71,17 +74,73 @@ function OptionInput({ option, value, onSave }: {
 
   if (option.type === 'range') {
     return <>
-      <input ref={range} type="range" defaultValue={String(value)} min={min} max={max} step={step}
+      <input id={id} ref={range} type="range" defaultValue={String(value)} min={min} max={max} step={step}
         onPointerUp={(event) => { void saveInput(event.currentTarget); }}
         onKeyUp={(event) => { void saveInput(event.currentTarget); }}
         onBlur={(event) => { void saveInput(event.currentTarget); }} /> {value}
     </>;
   }
 
-  return <input type={numeric ? 'number' : 'text'} defaultValue={String(value)}
+  return <input id={id} type={numeric ? 'number' : 'text'} defaultValue={String(value)}
     min={min} max={max} step={step}
     onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }}
     onBlur={(event) => { void saveInput(event.currentTarget); }} />;
+}
+
+function OptionHelp({ label, tooltip }: { label: string; tooltip?: string }) {
+  const tooltipId = useId();
+  if (!tooltip) return null;
+  return <span className="option-help">
+    <button type="button" aria-label={`Help for ${label}`} aria-describedby={tooltipId}>?</button>
+    <span id={tooltipId} role="tooltip">{tooltip}</span>
+  </span>;
+}
+
+function OptionRow({ option, value, onSave }: {
+  option: PluginOption;
+  value: PluginOptionValue;
+  onSave: (value: PluginOptionValue) => Promise<boolean>;
+}) {
+  const id = useId();
+  return <div className="option-row">
+    <label htmlFor={id}>{option.label}</label>{' '}
+    <OptionHelp label={option.label} tooltip={option.tooltip} />{' '}
+    <OptionInput id={id} key={option.type === 'number' || option.type === 'string' ? String(value) : undefined}
+      option={option} value={value} onSave={onSave} />
+  </div>;
+}
+
+function OptionFields({ options, settings, onSave }: {
+  options: PluginOptions;
+  settings: PluginSettings;
+  onSave: (key: string, option: PluginOption, value: PluginOptionValue) => Promise<boolean>;
+}) {
+  const legacy = new Map<string, ReactNode[]>();
+  const nodes: ReactNode[] = [];
+  for (const [key, option] of Object.entries(options)) {
+    if (option.type === 'group') {
+      nodes.push(<fieldset key={`group:${key}`} className="option-group">
+        <legend>{option.label}{' '}<OptionHelp label={option.label} tooltip={option.tooltip} /></legend>
+        <OptionFields options={option.options} settings={settings} onSave={onSave} />
+      </fieldset>);
+      continue;
+    }
+
+    const input = <OptionRow key={`setting:${key}`} option={option} value={settings[key] ?? option.default}
+      onSave={(next) => onSave(key, option, next)} />;
+    if (option.group) {
+      let fields = legacy.get(option.group);
+      if (!fields) {
+        fields = [];
+        legacy.set(option.group, fields);
+        nodes.push(<fieldset key={`legacy:${option.group}`}><legend>{option.group}</legend>{fields}</fieldset>);
+      }
+      fields.push(input);
+    } else {
+      nodes.push(input);
+    }
+  }
+  return nodes;
 }
 
 export default function App() {
@@ -177,12 +236,6 @@ export default function App() {
         const enabled = values[enabledKey(plugin.id)] === true;
         const executionError = thirdParty ? values[pluginErrorKey(plugin.id)] as InstalledPluginError | undefined : undefined;
         const settings = readPluginSettings(plugin, values);
-        const groups = new Map<string, [string, PluginOption][]>();
-        for (const entry of Object.entries(plugin.options ?? {})) {
-          const group = entry[1].group ?? '';
-          if (!groups.has(group)) groups.set(group, []);
-          groups.get(group)!.push(entry);
-        }
         return (
           <section key={plugin.id}>
             <h2>{plugin.name}</h2>
@@ -206,23 +259,10 @@ export default function App() {
                 setError(String(cause));
               }
             }}>Remove</button></>}
-            {groups.size > 0 && <details>
+            {plugin.options && Object.keys(plugin.options).length > 0 && <details>
               <summary>{plugin.name} settings</summary>
-              {[...groups].map(([group, options]) => {
-                const inputs = options.map(([key, option]) => {
-                  const value = settings[key] ?? option.default;
-                  return (
-                    <div key={key}>
-                      <label>{option.label} <OptionInput
-                        key={option.type === 'number' || option.type === 'string' ? String(value) : undefined}
-                        option={option} value={value}
-                        onSave={(next) => saveSetting(plugin, thirdParty, key, option, next)} /></label>
-                    </div>
-                  );
-                });
-                return group ? <fieldset key={group}><legend>{group}</legend>{inputs}</fieldset>
-                  : <div key={group}>{inputs}</div>;
-              })}
+              <OptionFields options={plugin.options} settings={settings}
+                onSave={(key, option, next) => saveSetting(plugin, thirdParty, key, option, next)} />
             </details>}
           </section>
         );

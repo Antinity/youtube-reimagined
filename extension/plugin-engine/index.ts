@@ -1,6 +1,6 @@
 import { hasValidMetadata, type Plugin } from './schema';
 
-export type { Plugin, PluginContext, PluginHooks, PluginMetadata, PluginOption, PluginOptionValue, PluginSettings } from './schema';
+export type { Plugin, PluginContext, PluginHooks, PluginMetadata, PluginOption, PluginOptions, PluginOptionValue, PluginSettings } from './schema';
 
 const modules = import.meta.glob<{ default: Plugin }>('../plugins/*.js');
 let discovery: Promise<Plugin[]> | undefined;

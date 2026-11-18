@@ -1,0 +1,24 @@
+.option-row,
+.option-group {
+  position: relative;
+}
+
+.option-help [role='tooltip'] {
+  display: none;
+  position: absolute;
+  inset-inline-start: 0;
+  z-index: 1;
+  margin-block-start: 1.5em;
+  inline-size: max-content;
+  max-inline-size: min(100%, 32ch);
+  overflow-wrap: anywhere;
+  padding: 4px 6px;
+  border: 1px solid;
+  color: CanvasText;
+  background: Canvas;
+}
+
+.option-help:hover [role='tooltip'],
+.option-help:focus-within [role='tooltip'] {
+  display: inline-block;
+}
