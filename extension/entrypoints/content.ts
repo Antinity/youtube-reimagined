@@ -1,34 +1,13 @@
+import { syncActiveTheme } from '@/theme-engine/sync';
 import { discoverPlugins } from '@/plugin-engine';
 import { createPluginRuntime, listenForPluginNavigation } from '@/plugin-engine/runtime';
 import { enabledKey, pluginStorageKeys, readPluginSettings, watchPluginStorage } from '@/plugin-engine/storage';
 import { youtubeMatches } from '@/youtube';
-import { discoverThemes } from '@/theme-engine';
-import { createThemeRuntime } from '@/theme-engine/runtime';
-import { reportThemeApplicationError, selectedThemeId, watchThemeStorage } from '@/theme-engine/storage';
-import { installedThemes } from '@/theme-engine/installed';
-import { readThemeSettings } from '@/theme-engine/settings';
 
 export default defineContentScript({
   matches: youtubeMatches,
   async main(ctx) {
-    const themes = discoverThemes();
-    const themeRuntime = createThemeRuntime(document);
-    const stopThemes = watchThemeStorage((values) => {
-      if (ctx.isInvalid) return;
-      const id = selectedThemeId(values);
-      try {
-        const theme = themes.find((theme) => theme.metadata.id === id)
-          ?? installedThemes(values).find((theme) => theme.metadata.id === id);
-        themeRuntime.apply(theme, theme ? readThemeSettings(theme, values) : undefined);
-      } catch (error) {
-        console.error('Could not apply theme', error);
-        if (id) void reportThemeApplicationError(id, error).catch(console.error);
-      }
-    }, (error) => console.error('Could not read theme settings', error));
-    ctx.onInvalidated(() => {
-      stopThemes();
-      themeRuntime.dispose();
-    });
+    ctx.onInvalidated(syncActiveTheme(document, () => ctx.isValid));
 
     const plugins = await discoverPlugins();
     if (ctx.isInvalid) return;
