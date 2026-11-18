@@ -1,4 +1,4 @@
-import { dirname, resolve } from 'node:path';
+import { dirname, relative, resolve, sep } from 'node:path';
 import { defineConfig } from 'wxt';
 import { youtubeMatches } from './youtube';
 
@@ -16,7 +16,9 @@ export default defineConfig({
 
       server.watcher.on('all', (event, file) => {
         if (event !== 'add' && event !== 'change' && event !== 'unlink') return;
-        if (dirname(resolve(file)) === themesDir && file.endsWith('.css')) {
+        const themePath = relative(themesDir, resolve(file)).split(sep);
+        if (themePath[0] && themePath[0] !== '..' && themePath.length <= 2
+          && /\.(css|js|png|jpe?g|webp)$/i.test(file)) {
           server.watcher.emit('all', 'change', themeRegistry);
           server.reloadPage('popup.html');
           return;
