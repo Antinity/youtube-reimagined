@@ -11,10 +11,14 @@ export interface Plugin {
   activate(context: PluginContext): PluginHooks | void;
 }
 
-export type PluginOption = { label: string } & (
+export type PluginOption = { label: string; group?: string } & (
   | { type: 'boolean'; default: boolean }
   | { type: 'string'; default: string }
-  | { type: 'number'; default: number; min?: number; max?: number; integer?: boolean }
+  | { type: 'select'; default: string; choices: Readonly<Record<string, string>> }
+  | ({ default: number; step?: number; integer?: boolean } & (
+    | { type: 'number'; min?: number; max?: number }
+    | { type: 'range'; min: number; max: number }
+  ))
 );
 
 export type PluginOptionValue = PluginOption['default'];
