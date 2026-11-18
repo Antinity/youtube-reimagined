@@ -34,6 +34,7 @@ export interface PluginOptionGroup extends OptionLabel {
 export type PluginOption = OptionLabel & { group?: string } & (
   | { type: 'boolean'; default: boolean }
   | { type: 'string'; default: string }
+  | { type: 'color'; default: string }
   | { type: 'select'; default: string; choices: Readonly<Record<string, string>> }
   | ({ default: number; step?: number; integer?: boolean } & (
     | { type: 'number'; min?: number; max?: number }

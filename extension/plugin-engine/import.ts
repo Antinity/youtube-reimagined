@@ -145,7 +145,7 @@ export function validatePluginImport(name: string, source: string): PluginImport
       const path = `${parent}.${key}`;
       if (!key.trim()) fail(node, 'Plugin option names must be non-empty strings.');
       const optionFields = properties(node, path);
-      const typeNode = required(optionFields, node, 'type', 'group, boolean, string, number, range or select');
+      const typeNode = required(optionFields, node, 'type', 'group, boolean, string, color, number, range or select');
       const type = string(typeNode, `${path}.type`);
       const label = string(required(optionFields, node, 'label', 'a non-empty option label'), `${path}.label`);
       const tooltipNode = optionFields.get('tooltip');
@@ -195,13 +195,14 @@ export function validatePluginImport(name: string, source: string): PluginImport
         }
         case 'boolean':
         case 'string':
+        case 'color':
           break;
         default:
-          fail(typeNode, `${path}.type must be group, boolean, string, number, range or select.`);
+          fail(typeNode, `${path}.type must be group, boolean, string, color, number, range or select.`);
       }
       const definition = option as PluginOption;
       if (!isValidOptionValue(definition, definition.default)) {
-        fail(defaultNode, `${path}.default must be ${type === 'select' ? 'one of the declared choice keys' : type === 'range' || type === 'number' ? 'a number satisfying min, max, step and integer' : `a ${type}`}.`);
+        fail(defaultNode, `${path}.default must be ${type === 'select' ? 'one of the declared choice keys' : type === 'range' || type === 'number' ? 'a number satisfying min, max, step and integer' : type === 'color' ? 'a hex color such as "#112233"' : `a ${type}`}.`);
       }
       return [key, definition];
     }));

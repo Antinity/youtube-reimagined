@@ -6,6 +6,8 @@ export function isValidOptionValue(option: PluginOption, value: unknown): value 
       return typeof value === 'boolean';
     case 'string':
       return typeof value === 'string';
+    case 'color':
+      return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
     case 'select':
       return typeof value === 'string' && option.choices != null
         && typeof option.choices === 'object' && !Array.isArray(option.choices)

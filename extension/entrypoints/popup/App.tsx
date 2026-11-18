@@ -44,13 +44,21 @@ function OptionInput({ id, option, value, onSave }: {
 }) {
   const select = useRef<HTMLSelectElement>(null);
   const range = useRef<HTMLInputElement>(null);
+  const color = useRef<HTMLInputElement>(null);
   useLayoutEffect(() => {
     if (select.current) select.current.value = String(value);
     if (range.current) range.current.value = String(value);
+    if (color.current) color.current.value = String(value);
   }, [value]);
 
   if (option.type === 'boolean') {
     return <Checkbox id={id} checked={value === true} onSave={onSave} />;
+  }
+  if (option.type === 'color') {
+    return <input id={id} ref={color} type="color" defaultValue={String(value)} onChange={async ({ currentTarget }) => {
+      const next = currentTarget.value;
+      if (!await onSave(next) && currentTarget.value === next) currentTarget.value = String(value);
+    }} />;
   }
   if (option.type === 'select') {
     return <select id={id} ref={select} defaultValue={String(value)} onChange={async ({ currentTarget }) => {

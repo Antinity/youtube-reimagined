@@ -1,20 +1,24 @@
 import type { Theme } from './schema';
+import type { PluginSettings } from '../plugin-engine/schema';
 
 export function createThemeRuntime(doc: Document) {
   let active: HTMLStyleElement | undefined;
 
   return {
-    apply(theme: Theme | undefined) {
+    apply(theme: Theme | undefined, settings: PluginSettings = {}) {
       if (!theme) {
         active?.remove();
         active = undefined;
         return;
       }
-      if (active?.isConnected && active.dataset.yrTheme === theme.metadata.id && active.textContent === theme.css) return;
+      const declarations = Object.entries(settings).map(([key, value]) =>
+        `--yr-theme-${key}: ${typeof value === 'boolean' ? Number(value) : value};`);
+      const css = declarations.length ? `${theme.css}\n:root { ${declarations.join(' ')} }` : theme.css;
+      if (active?.isConnected && active.dataset.yrTheme === theme.metadata.id && active.textContent === css) return;
 
       const next = doc.createElement('style');
       next.dataset.yrTheme = theme.metadata.id;
-      next.textContent = theme.css;
+      next.textContent = css;
       (doc.head ?? doc.documentElement).append(next);
       if (!next.sheet) {
         next.remove();

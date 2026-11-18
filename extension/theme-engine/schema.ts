@@ -2,6 +2,7 @@ import { findNodeAtLocation, parseTree, printParseErrorCode, type ParseError } f
 import { isNonEmptyText, isPluginId, type PluginMetadata, type PluginOption } from '../plugin-engine/schema.ts';
 import { isValidOptionValue } from '../plugin-engine/options.ts';
 import { ThemeValidationError } from './diagnostics.ts';
+import { isValidThemeValue } from './settings.ts';
 
 export interface ThemeMetadata extends Omit<PluginMetadata, 'apiVersion'> {
   schemaVersion?: 1;
@@ -71,8 +72,9 @@ export function readTheme(source: string): Theme {
         checkOptions(option.options, [...at, 'options']);
         continue;
       }
-      if (option.type !== 'number' && option.type !== 'range' && option.type !== 'boolean' && option.type !== 'string' && option.type !== 'select') {
-        invalid([...at, 'type'], 'group, boolean, string, select, number, or range');
+      if (option.type !== 'number' && option.type !== 'range' && option.type !== 'boolean'
+        && option.type !== 'string' && option.type !== 'select' && option.type !== 'color') {
+        invalid([...at, 'type'], 'group, boolean, string, select, number, range, or color');
       }
       if ('options' in option) invalid([...at, 'options'], 'type "group" to contain nested options');
       if (!/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(key) || settingIds.has(key)) invalid(at, 'a unique CSS variable identifier starting with a letter');
@@ -96,7 +98,15 @@ export function readTheme(source: string): Theme {
       }
       if (!isValidOptionValue(option as unknown as PluginOption, option.default)) {
         invalid([...at, 'default'], option.type === 'select' ? 'one of the declared choice keys'
-          : option.type === 'range' || option.type === 'number' ? 'a number within the declared bounds and step' : `a ${option.type} value`);
+          : option.type === 'range' || option.type === 'number' ? 'a number within the declared bounds and step'
+            : option.type === 'color' ? 'a six-digit hex color such as "#112233"' : `a ${option.type} value`);
+      }
+      const definition = option as unknown as PluginOption;
+      if (!isValidThemeValue(definition, option.default)) invalid([...at, 'default'], 'a plain CSS keyword, number, unit, or color');
+      if (definition.type === 'select') {
+        for (const choice of Object.keys(definition.choices)) {
+          if (!isValidThemeValue(definition, choice)) invalid([...at, 'choices', choice], 'a plain CSS keyword, number, unit, or color as the choice key');
+        }
       }
     }
   }
