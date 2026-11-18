@@ -1,4 +1,5 @@
 import { readNativeTheme } from './native.ts';
+import type { ThemePreview } from './preview';
 import { findNodeAtLocation, parseTree, printParseErrorCode, type ParseError } from 'jsonc-parser';
 import { isNonEmptyText, isPluginId, type PluginMetadata, type PluginOption } from '../plugin-engine/schema.ts';
 import { isValidOptionValue } from '../plugin-engine/options.ts';
@@ -15,6 +16,7 @@ export interface Theme {
   metadata: ThemeMetadata;
   css: string;
   metadataSource?: string;
+  preview?: ThemePreview;
 }
 
 const opening = '/* ==Theme==';

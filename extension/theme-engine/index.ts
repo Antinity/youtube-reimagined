@@ -6,12 +6,12 @@ export const defaultThemeId = 'custom-colors';
 
 export function discoverThemes(): Theme[] {
   const themes = new Map<string, Theme>();
-  for (const { folder, css, metadata: metadataSource } of discoverThemeFolders()) {
+  for (const { folder, css, metadata: metadataSource, preview } of discoverThemeFolders()) {
     try {
       if (!metadataSource || !css.trim()) throw new Error('Expected metadata.js and a non-empty theme.css.');
       const metadata = readMetadataJs(metadataSource);
       if (themes.has(metadata.id)) throw new Error(`Duplicate theme ID "${metadata.id}".`);
-      themes.set(metadata.id, { metadata, css, metadataSource });
+      themes.set(metadata.id, { metadata, css, metadataSource, preview });
     } catch (error) {
       console.error(`Could not load bundled theme "${folder}".`, error);
     }
