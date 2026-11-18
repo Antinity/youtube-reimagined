@@ -1,5 +1,7 @@
 import type { Plugin, PluginHooks, PluginSettings } from './index';
 
+type RuntimePlugin = Pick<Plugin, 'id' | 'activate'>;
+
 interface Activation {
   cleanup: () => void;
   hooks?: PluginHooks | void;
@@ -7,11 +9,11 @@ interface Activation {
 }
 
 export function createPluginRuntime() {
-  const active = new Map<Plugin, Activation>();
+  const active = new Map<RuntimePlugin, Activation>();
   let currentUrl = location.href;
 
   return {
-    update(plugin: Plugin, enabled: boolean, settings: PluginSettings) {
+    update(plugin: RuntimePlugin, enabled: boolean, settings: PluginSettings) {
       const existing = active.get(plugin);
       if (!enabled) {
         active.delete(plugin);

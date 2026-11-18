@@ -1,6 +1,8 @@
 import { youtubeMatches } from '@/youtube';
+import { startUserScripts } from '@/plugin-engine/user-scripts';
 
 export default defineBackground(() => {
+  startUserScripts();
   // Manifest content scripts are injected on future page loads.
   browser.runtime.onInstalled.addListener(async ({ reason }) => {
     if (reason !== 'install' && reason !== 'update') return;

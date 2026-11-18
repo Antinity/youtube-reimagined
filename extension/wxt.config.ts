@@ -21,10 +21,10 @@ export default defineConfig({
       });
     },
   },
-  manifest: {
+  manifest: ({ browser, manifestVersion }) => ({
     name: 'YouTube Reimagined',
     description: 'Customize YouTube with plugins.',
-    permissions: ['storage', 'scripting'],
+    permissions: ['storage', 'scripting', ...(manifestVersion === 3 && browser !== 'firefox' && browser !== 'safari' ? ['userScripts'] : [])],
     host_permissions: youtubeMatches,
-  },
+  }),
 });
