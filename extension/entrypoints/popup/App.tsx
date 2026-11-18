@@ -10,6 +10,7 @@ import {
 } from '@/plugin-engine/storage';
 import { refreshUserScriptsMessage, userScriptAccess } from '@/plugin-engine/user-scripts';
 import PluginImport from './PluginImport';
+import ThemeImport from './ThemeImport';
 import './option-help.css';
 
 function Checkbox({ id, checked, label, disabled, onSave }: {
@@ -228,6 +229,7 @@ export default function App() {
     <main style={{ width: 360 }}>
       <h1>Plugins</h1>
       <PluginImport bundledIds={plugins?.map(({ id }) => id)} />
+      <ThemeImport />
       {error && <p role="alert">{error}</p>}
       {(!entries || !values) && !error && <p>Loading plugins…</p>}
       {hasInstalled && accessError && <p>{accessError}{' '}

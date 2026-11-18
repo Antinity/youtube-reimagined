@@ -5,6 +5,7 @@ import { youtubeMatches } from '@/youtube';
 import { discoverThemes } from '@/theme-engine';
 import { createThemeRuntime } from '@/theme-engine/runtime';
 import { selectedThemeId, watchThemeStorage } from '@/theme-engine/storage';
+import { installedThemes } from '@/theme-engine/installed';
 
 export default defineContentScript({
   matches: youtubeMatches,
@@ -14,7 +15,9 @@ export default defineContentScript({
     const stopThemes = watchThemeStorage((values) => {
       if (ctx.isInvalid) return;
       try {
-        themeRuntime.apply(themes.find((theme) => theme.metadata.id === selectedThemeId(values)));
+        const id = selectedThemeId(values);
+        themeRuntime.apply(themes.find((theme) => theme.metadata.id === id)
+          ?? installedThemes(values).find((theme) => theme.metadata.id === id));
       } catch (error) {
         console.error('Could not apply theme', error);
       }

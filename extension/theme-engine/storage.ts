@@ -1,6 +1,7 @@
 import { browser } from 'wxt/browser';
 import { defaultThemeId } from './index';
 import { watchPluginStorage } from '../plugin-engine/storage';
+import { installedThemesKey } from './installed';
 
 export const selectedThemeKey = 'theme:selected';
 export const themeSettingsKey = 'theme:settings';
@@ -16,5 +17,5 @@ export function selectTheme(id: string | null): Promise<void> {
 }
 
 export function watchThemeStorage(onUpdate: (values: Readonly<Record<string, unknown>>) => void, onError: (error: unknown) => void) {
-  return watchPluginStorage([selectedThemeKey, themeSettingsKey], onUpdate, onError);
+  return watchPluginStorage([selectedThemeKey, themeSettingsKey, installedThemesKey], onUpdate, onError);
 }
