@@ -11,13 +11,13 @@ export default function DataManagement() {
   const [enableImported, setEnableImported] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  async function run(action: () => Promise<void>, success: string) {
+  async function run(action: () => Promise<string | void>, success: string) {
     setError('');
     setMessage('');
     setBusy(true);
     try {
-      await action();
-      setMessage(success);
+      const notice = await action();
+      setMessage(notice ? `${success} ${notice}` : success);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -63,8 +63,9 @@ export default function DataManagement() {
         if (mode === 'replace' && !window.confirm('Replace the current configuration and remove user modules absent from this backup?')) return;
         void run(async () => {
           const { restoreBackup } = await import('@/data/restore');
-          await restoreBackup(backup, mode, enableImported);
+          const notice = await restoreBackup(backup, mode, enableImported);
           setBackup(undefined);
+          return notice;
         }, 'Configuration restored.');
       }}>Restore configuration</button>
     </fieldset>}

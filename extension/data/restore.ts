@@ -6,14 +6,24 @@ import { selectedThemeKey } from '@/theme-engine/storage';
 import { themeSettingsKey } from '@/theme-engine/settings';
 import { themeApplicationErrorKey } from '@/theme-engine/diagnostics';
 import type { ValidatedBackup } from './validate';
+import { refreshUserScriptsMessage, userScriptAccess } from '@/plugin-engine/user-scripts';
 
 export type RestoreMode = 'merge' | 'replace';
 
-export async function restoreBackup(backup: ValidatedBackup, mode: RestoreMode, enableImported: boolean): Promise<void> {
+export async function restoreBackup(backup: ValidatedBackup, mode: RestoreMode, enableImported: boolean): Promise<string | undefined> {
   await withModuleLocks(async () => {
     const previous = await browser.storage.local.get(null);
     await browser.storage.local.set(restoreChanges(previous, backup, mode, enableImported));
   });
+  if (enableImported && backup.plugins.some(({ id, enabled }) => enabled && backup.pluginSources.has(id))) {
+    const unavailable = userScriptAccess();
+    if (unavailable) return unavailable;
+  }
+  try {
+    await browser.runtime.sendMessage(refreshUserScriptsMessage);
+  } catch (cause) {
+    return `Saved configuration. Could not confirm synchronization of user scripts: ${String(cause)}`;
+  }
 }
 
 export async function withModuleLocks(action: () => Promise<void>): Promise<void> {
