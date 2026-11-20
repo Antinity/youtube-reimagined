@@ -141,17 +141,18 @@ h3 { font-size: 14px; margin: 0; }
   align-items: center;
   gap: 8px;
   flex: none;
-  margin: 8px 10px 10px;
+  margin: 10px 10px 0;
   padding: 8px 8px 8px 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--surface);
+  background: var(--warning);
+  color: var(--warning-ink);
   box-shadow: 0 4px 12px #0003;
   animation: popup-enter 160ms cubic-bezier(.2,.7,.2,1) both;
 }
-.update-toast small { display: block; margin-block-start: 2px; color: var(--muted); }
-.update-toast a { padding: 6px 2px; font-weight: 600; text-underline-offset: 2px; }
-.update-toast .icon-button { color: var(--muted); }
+.update-toast small { display: block; margin-block-start: 2px; }
+.update-toast a { padding: 6px 2px; color: inherit; font-weight: 600; text-underline-offset: 2px; }
+.update-toast .icon-button:hover { background: color-mix(in srgb, currentColor 12%, transparent); color: inherit; }
 .cards { display: grid; gap: 12px; }
 .search {
   display: flex;

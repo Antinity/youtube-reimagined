@@ -61,8 +61,8 @@ export function Shell({ page, panel, navigate, back, children }: {
         onClick={() => navigate(item.page)}><AppIcon name={item.icon} size={22} /></button>)}
     </nav>
     <div className="workspace-frame">
-      <main className="workspace" ref={workspace}><div className="workspace-content" ref={content}>{children}</div></main>
       <UpdateToast />
+      <main className="workspace" ref={workspace}><div className="workspace-content" ref={content}>{children}</div></main>
     </div>
   </div>;
 }
