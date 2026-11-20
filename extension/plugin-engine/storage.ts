@@ -41,8 +41,9 @@ export function watchPluginStorage(
   let values: Record<string, unknown> = {};
   let pending: Record<string, unknown> | undefined = {};
   let stopped = false;
+  const storageChanges = browser.storage.local.onChanged;
 
-  const onChange: Parameters<typeof browser.storage.local.onChanged.addListener>[0] = (changes) => {
+  const onChange: Parameters<typeof storageChanges.addListener>[0] = (changes) => {
     if (stopped) return;
     const updates = Object.fromEntries(Object.entries(changes)
       .filter(([key]) => watched.has(key))
@@ -57,7 +58,7 @@ export function watchPluginStorage(
     }
   };
 
-  browser.storage.local.onChanged.addListener(onChange);
+  storageChanges.addListener(onChange);
   void (async () => {
     try {
       values = keys.length ? await browser.storage.local.get(keys) : {};
@@ -71,7 +72,14 @@ export function watchPluginStorage(
   })();
 
   return () => {
+    if (stopped) return;
     stopped = true;
-    browser.storage.local.onChanged.removeListener(onChange);
+    // The browser discards storage listeners when it invalidates the extension context.
+    if (!browser.runtime?.id) return;
+    try {
+      storageChanges.removeListener(onChange);
+    } catch (error) {
+      if (browser.runtime?.id) throw error;
+    }
   };
 }

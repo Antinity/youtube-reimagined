@@ -12,7 +12,7 @@ export default defineContentScript({
   allFrames: true,
   async main(ctx) {
     const embedded = location.pathname.startsWith('/embed/');
-    if (window !== window.top && !embedded) return;
+    if ((window !== window.top && !embedded) || ctx.isInvalid) return;
     if (!embedded) ctx.onInvalidated(syncActiveTheme(document, () => ctx.isValid));
 
     const bundled = await discoverPlugins();
@@ -29,10 +29,15 @@ export default defineContentScript({
       for (const plugin of plugins) {
         runtime.update(plugin, values[pauseModsKey] !== true && values[enabledKey(plugin.id)] === true, readPluginSettings(plugin, values));
       }
-    }, (error) => console.error('Could not read plugin storage', error));
+    }, (error) => {
+      if (ctx.isValid) console.error('Could not read plugin storage', error);
+    });
     ctx.onInvalidated(() => {
-      unwatch();
-      runtime.dispose();
+      try {
+        unwatch();
+      } finally {
+        runtime.dispose();
+      }
     });
   },
 });

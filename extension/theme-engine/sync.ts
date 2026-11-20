@@ -17,11 +17,18 @@ export function syncActiveTheme(doc: Document, isValid: () => boolean) {
       runtime.apply(theme, theme && readThemeSettings(theme, values));
     } catch (error) {
       console.error('Could not apply theme', error);
-      if (id) void reportThemeApplicationError(id, error).catch(console.error);
+      if (id) void reportThemeApplicationError(id, error).catch((cause) => {
+        if (isValid()) console.error(cause);
+      });
     }
-  }, (error) => console.error('Could not read theme settings', error));
+  }, (error) => {
+    if (isValid()) console.error('Could not read theme settings', error);
+  });
   return () => {
-    unwatch();
-    runtime.dispose();
+    try {
+      unwatch();
+    } finally {
+      runtime.dispose();
+    }
   };
 }
