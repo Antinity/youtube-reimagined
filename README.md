@@ -34,9 +34,21 @@
 
 | Plugin | What you can customize |
 | --- | --- |
+| **Comment Plus** | Search loaded desktop comment threads and optionally sort by newest when a video opens. |
+| **Custom Progress Bar** | Pick solid colors or a gradient, give the timeline or playhead a custom image, or use the Nyan Cat preset. |
+| **Default Video Quality** | Set separate resolutions for videos, playlists, pop-up players, and embeds. Choose a fullscreen override and whether to restore the default when exiting. |
+| **Default Volume** | Set the starting volume for each new video. |
+| **Focus Mode** | Hide selected distractions, including recommendations, comments, live chat, and end screens. Optionally open Subscriptions instead of Home. |
 | **Fullscreen Theater Mode** | Fill the viewport in desktop YouTube’s theater mode. Optionally open each video in theater mode, adjust player height and spacing above the video details, and reveal the search bar by hovering at the top edge or tabbing into the header. |
 | **Hide Shorts** | Hide Shorts shelves, cards, and navigation links. Choose where to hide them across Home, the sidebar, search, subscriptions, channels, hashtag pages, and the watch page. |
-| **Videos Per Row** | Set desktop Home and channel grids to 1–12 columns, adjust spacing and Home width, hide the game shelf, and tune title and metadata typography. Search can use full-width results, custom header alignment, a grid or resized list thumbnails, and controls to hide Shorts, expandable metadata, and recommended shelves. On the watch page, resize or stack related thumbnails and turn off hover previews. Hide watched videos or apply adjustable grayscale to their cards, thumbnails, or progress bars. You can also hide banners and surveys, Shorts, auto-dubbed videos, YouTube Mixes, and members-only videos. |
+| **Keyboard Shortcuts** | Press Ctrl+K to focus YouTube search. |
+| **Old Player Controls** | Restore a classic toolbar and icons. Optionally change the recommendation sidebar, navigation order, and comment threads. |
+| **Open Shorts as Videos** | Open Shorts in the standard watch page. |
+| **Scroll to Change Speed** | Hold Ctrl by default and scroll over the player. Choose the modifier and adjustment size. |
+| **Scroll to Change Volume** | Scroll over selected player quadrants or hold a configurable modifier. The top quadrants are active by default. |
+| **Videos Per Row** | Set separate desktop column counts for videos, Shorts, and Community posts. Adjust spacing, typography, search and watch layouts, and visibility filters. |
+| **Watched Overlay** | Mark thumbnails that have YouTube watch progress. |
+| **YouTube Font** | Choose a preset such as Inter or provide an HTTPS font file URL. |
 
 ### Bundled theme
 
@@ -77,7 +89,7 @@ Download a ZIP from [GitHub Releases](https://github.com/Antinity/YouTube-Reimag
 3. Click **Load unpacked** and select the extracted folder containing `manifest.json`.
 4. Open YouTube and select **YouTube Reimagined** in the browser’s Extensions menu. Refresh any YouTube tabs that were already open.
 
-The extension targets `www.youtube.com` and `m.youtube.com`. Fullscreen Theater Mode and Videos Per Row apply to desktop YouTube.
+The extension targets `www.youtube.com` and `m.youtube.com`. Playback controls also support YouTube embeds, including `www.youtube-nocookie.com`. Fullscreen Theater Mode, Videos Per Row, Old Player Controls, and Comment Plus apply to desktop YouTube.
 
 ### Firefox
 
