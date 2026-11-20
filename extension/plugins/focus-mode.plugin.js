@@ -6,7 +6,7 @@ const plugin = {
   id: 'focus-mode',
   name: 'Focus Mode',
   description: 'Hide distracting parts of YouTube and optionally start on Subscriptions.',
-  version: '1.1.0',
+  version: '1.1.1',
   authors: ['Antinity'],
   options: {
     browsing: {
@@ -220,17 +220,16 @@ const buttonStyle = `
   button.yr-focus-section-toggle {
     display: flex; align-items: center; align-self: flex-start; gap: 6px; inline-size: fit-content; max-inline-size: 100%;
     min-block-size: 32px; margin: 0 0 8px; padding: 4px 10px;
-    border: 0; border-radius: 16px; cursor: pointer;
+    border: 1px solid light-dark(#dce2e8, #414750); border-radius: 16px; cursor: pointer;
     font: 500 12px/1.3 Roboto, Arial, sans-serif;
-    color: var(--yt-spec-text-primary, CanvasText);
-    background: var(--yt-spec-10-percent-layer, color-mix(in srgb, currentColor 10%, transparent));
+    color: light-dark(#181c21, #fff);
+    background: light-dark(#eef1f4, #282c32);
     transition: background-color 150ms ease, transform 150ms ease;
   }
+  :where(html[dark], html[data-theme='dark'], ytd-app[dark]) button.yr-focus-section-toggle { color-scheme: dark; }
   button.yr-focus-section-toggle[data-section="sidebar"] { margin-inline-start: auto; }
-  button.yr-focus-section-toggle:hover {
-    background: var(--yt-spec-badge-chip-background, color-mix(in srgb, currentColor 16%, transparent));
-  }
-  button.yr-focus-section-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+  button.yr-focus-section-toggle:hover { background: light-dark(#e1e7ee, #343a44); }
+  button.yr-focus-section-toggle:focus-visible { outline: 2px solid light-dark(#0754b4, #82baff); outline-offset: 2px; }
   button.yr-focus-section-toggle:active { transform: scale(0.97); }
   button.yr-focus-section-toggle svg { flex: none; }
   @media (prefers-reduced-motion: reduce) {
