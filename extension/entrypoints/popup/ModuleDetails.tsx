@@ -5,16 +5,17 @@ import { OptionFields } from './Options';
 import ResetModuleSettings from './ResetModuleSettings';
 import { Badge } from './Shell';
 
-export function ModuleDetails({ kind, metadata, settings, onSave, control, thirdParty, remove }: {
+export function ModuleDetails({ kind, metadata, settings, onSave, control, thirdParty, launch, remove }: {
   kind: 'plugin' | 'theme'; metadata: PluginMetadata | ThemeMetadata; settings: PluginSettings;
   onSave: (key: string, option: PluginOption, value: PluginOptionValue) => Promise<boolean>;
-  control: ReactNode; thirdParty: boolean; remove?: () => void;
+  control: ReactNode; thirdParty: boolean; launch?: ReactNode; remove?: () => void;
 }) {
   return <article className="module-details">
     <div className="detail-header">
       <div>
         <h1>{metadata.name} <Badge thirdParty={thirdParty} badgeNew={metadata.badgeNew} /></h1>
         <p>{metadata.description}</p>
+        {launch}
       </div>
       {control}
     </div>

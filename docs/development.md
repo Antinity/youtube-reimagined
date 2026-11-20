@@ -22,6 +22,8 @@ If the popup shows a stale module list after an edit, close and reopen it. If an
 | `npm run build:firefox` | Build for Firefox into `.output/firefox-mv2`. |
 | `npm run zip:firefox` | Package the Firefox extension. |
 
+Each local build overwrites the unpacked build folders. To install or verify a specific release, use its versioned ZIP and check that ZIP’s `manifest.json`.
+
 When changing a module, test it in an already-open YouTube tab. Change its settings, navigate within YouTube, and disable the plugin or switch away from the theme to check cleanup. For an imported module, run the same checks after installing it through the popup so you exercise validation and the imported runtime. Imported JavaScript execution requires Chromium’s User Scripts API.
 
 Keep changes focused and commit each verified change using Conventional Commits, for example `docs(themes): clarify preview requirements`.

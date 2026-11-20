@@ -20,6 +20,7 @@ import { Badge, Search, Shell, type Page } from './Shell';
 import { useConfirm } from './Confirm';
 import { ModuleDetails } from './ModuleDetails';
 import { Checkbox } from './Options';
+import { youtubeSubscriptionsUrl } from '@/youtube';
 
 export default function App() {
   const [page, setPage] = useState<Page>('plugins');
@@ -147,9 +148,11 @@ export default function App() {
       disabled={Boolean(thirdParty && accessError && !enabled)} onSave={(next) => saveEnabled(plugin, thirdParty, next)} />;
     const runtimeError = executionError && executionError.revision === thirdParty?.revision &&
       <p className="notice error runtime-error" role="alert">{executionError.message}</p>;
+    const launch = !thirdParty && plugin.id === 'subscriptions-manager' &&
+      <a className="module-link" href={youtubeSubscriptionsUrl} target="_blank" rel="noreferrer">Open subscriptions page</a>;
     if (detail) return <>
       <ModuleDetails kind="plugin" metadata={plugin} settings={readPluginSettings(plugin, values)}
-        thirdParty={Boolean(thirdParty)} control={control}
+        thirdParty={Boolean(thirdParty)} control={control} launch={launch}
         onSave={(key, option, next) => saveSetting(plugin, thirdParty, key, option, next)}
         remove={importedCopy && (async () => {
           if (!await confirm({ title: 'Remove plugin?', message: `Remove the imported copy of ${plugin.name}.`,
@@ -171,6 +174,7 @@ export default function App() {
         {control}
       </div>
       <p>{plugin.description}</p>
+      {launch}
       {runtimeError}
     </article>;
   }

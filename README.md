@@ -46,6 +46,7 @@
 | **Open Shorts as Videos** | Open Shorts in the standard watch page. |
 | **Scroll to Change Speed** | Hold Ctrl by default and scroll over the player. Choose the modifier and adjustment size. |
 | **Scroll to Change Volume** | Scroll over selected player quadrants or hold a configurable modifier. The top quadrants are active by default. |
+| **Subscriptions Manager** | Open your subscriptions, search channels, switch to compact rows, and unsubscribe from selected channels or the full list after confirmation. |
 | **Videos Per Row** | Set separate desktop column counts for videos, Shorts, and Community posts. Adjust spacing, typography, search and watch layouts, and visibility filters. |
 | **Watched Overlay** | Mark thumbnails that have YouTube watch progress. |
 | **YouTube Font** | Choose a preset such as Inter or provide an HTTPS font file URL. |

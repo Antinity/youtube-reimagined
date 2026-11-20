@@ -186,6 +186,7 @@ h3 { font-size: 14px; margin: 0; }
 .card-top h2 { font-size: 14px; overflow-wrap: anywhere; }
 .plugin-card p:not(.notice), .detail-header p, .secondary { color: var(--muted); font-size: 14px; line-height: 1.25; }
 .plugin-card p:not(.notice) { margin-top: 2px; }
+.module-link { display: inline-block; margin-block-start: 7px; }
 .badge {
   display: inline-block;
   vertical-align: middle;
