@@ -38,7 +38,7 @@
 | **Custom Progress Bar** | Pick solid colors or a gradient, give the timeline or playhead a custom image, or use the Nyan Cat preset. |
 | **Default Video Quality** | Set separate resolutions for videos, playlists, pop-up players, and embeds. Choose a fullscreen override and whether to restore the default when exiting. |
 | **Default Volume** | Set the starting volume for each new video. |
-| **Focus Mode** | Hide selected distractions, including recommendations, comments, live chat, and end screens. Optionally open Subscriptions instead of Home. |
+| **Focus Mode** | Hide distractions and add individual watch-page buttons for the sidebar, comments, live chat, playlist, and description. Optionally open Subscriptions instead of Home. |
 | **Fullscreen Theater Mode** | Fill the viewport in desktop YouTube’s theater mode. Optionally open each video in theater mode, adjust player height and spacing above the video details, and reveal the search bar by hovering at the top edge or tabbing into the header. |
 | **Hide Shorts** | Hide Shorts shelves, cards, and navigation links. Choose where to hide them across Home, the sidebar, search, subscriptions, channels, hashtag pages, and the watch page. |
 | **Keyboard Shortcuts** | Press Ctrl+K to focus YouTube search. |
