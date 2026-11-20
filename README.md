@@ -77,7 +77,7 @@
   <a href="assets/screenshots/about.png"><img src="assets/screenshots/about.png" alt="About panel with project information and links" width="30%"></a>
 </p>
 
-The About screenshot was captured before the 1.0.0 version bump.
+The above screenshot was captured on the 1.0.0 version.
 
 ## Get started
 
