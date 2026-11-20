@@ -9,15 +9,22 @@ export function requestPlayer(player: Element, command: string) {
   }));
 }
 
-function getVideoId(player: HTMLElement) {
-  let id: string | undefined;
+function readPlayerResponse(player: HTMLElement, command: string) {
+  let response: string | undefined;
   const receive = (event: Event) => {
-    if (event instanceof CustomEvent && typeof event.detail === 'string') id = event.detail;
+    if (event instanceof CustomEvent && typeof event.detail === 'string') response = event.detail;
   };
   player.addEventListener('yr:player-response', receive, { once: true });
-  requestPlayer(player, 'id');
+  requestPlayer(player, command);
   player.removeEventListener('yr:player-response', receive);
-  return id;
+  return response;
+}
+
+export function getPlayerVolume(player: HTMLElement, video: HTMLVideoElement) {
+  if (video.muted) return 0;
+  // YouTube can scale the media element's volume independently of the slider.
+  const volume = Number(readPlayerResponse(player, 'get-volume'));
+  return Math.round(volume >= 0 && volume <= 100 ? volume : video.volume * 100);
 }
 
 export function setPlayerVolume(player: HTMLElement, video: HTMLVideoElement, percent: number, unmute = false) {
@@ -71,7 +78,7 @@ export function watchVideoPlayer(onCleanup: PluginContext['onCleanup'], apply: (
     if (!watch && !embed && !popup && !shortsId) return;
 
     if (player && video && !player.matches('.ad-showing, .ad-interrupting')) {
-      const actualId = getVideoId(player);
+      const actualId = readPlayerResponse(player, 'id');
       const expectedId = watch ? url.searchParams.get('v') : shortsId;
       const watchId = player.closest('ytd-watch-flexy')?.getAttribute('video-id');
       if (!(expectedId && ((actualId && actualId !== expectedId) || (!actualId && watchId && watchId !== expectedId)))) {

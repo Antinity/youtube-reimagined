@@ -4,7 +4,9 @@ interface YouTubePlayer extends HTMLElement {
   getVideoData?(): { video_id?: string } | null;
   getAvailableQualityLevels?(): string[];
   setPlaybackQualityRange?(min: string, max: string): void;
+  getVolume?(): number;
   setVolume?(level: number): void;
+  isMuted?(): boolean;
   unMute?(): void;
 }
 
@@ -34,6 +36,10 @@ export default defineContentScript({
         if (command === 'id') {
           const id = player.getVideoData?.()?.video_id;
           if (id) player.dispatchEvent(new CustomEvent('yr:player-response', { detail: id }));
+        }
+        if (command === 'get-volume' && player.getVolume && player.setVolume) {
+          const volume = player.isMuted?.() ? 0 : player.getVolume();
+          player.dispatchEvent(new CustomEvent('yr:player-response', { detail: String(volume) }));
         }
         if (command === 'volume' && /^(?:100|[0-9]{1,2})$/.test(value) && player.setVolume) {
           player.setVolume(Number(value));

@@ -1,6 +1,6 @@
 // @ts-check
 
-import { setPlayerVolume } from './shared/player';
+import { getPlayerVolume, setPlayerVolume } from './shared/player';
 import { hasWheelModifier, modifierChoices, watchPlayerWheel } from './shared/wheel';
 
 /** @type {import('../plugin-engine').Plugin} */
@@ -8,7 +8,7 @@ const plugin = {
   id: 'scroll-to-change-volume',
   name: 'Scroll to Change Volume',
   description: 'Scroll over selected areas of the video or hold a modifier to adjust volume.',
-  version: '1.0.1',
+  version: '1.0.2',
   authors: ['Antinity'],
   options: {
     activation: { type: 'select', label: 'Activate with', default: 'zones', choices: {
@@ -39,7 +39,7 @@ const plugin = {
           : (x < width / 2 ? 'bottomLeft' : 'bottomRight');
         if (!settings[zone]) return;
       }
-      const current = video.muted ? 0 : Math.round(video.volume * 100);
+      const current = getPlayerVolume(player, video);
       const level = Math.min(100, Math.max(0, current + Math.sign(-event.deltaY) * Number(settings.step)));
       setPlayerVolume(player, video, level, level > 0);
       return `${level}%`;
