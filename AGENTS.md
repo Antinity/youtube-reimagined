@@ -4,6 +4,8 @@ Commit each completed feature or coherent change to Git after verification. Use 
 
 ## Extension version
 
-Bump the extension version as part of any task that changes its shipped behavior. Use a patch bump for fixes, a minor bump for backward-compatible features, and a major bump for breaking changes. When a task contains several changes, use the highest applicable bump once. Keep the version for docs-only or development-only work that does not affect the bundled extension.
+Bump the extension version once per release that changes shipped behavior. Use a patch bump for fixes, refinements, and small additions. Reserve minor bumps for substantial backward-compatible features and major bumps for breaking changes. Group small changes into patch releases when practical. Keep the version for docs-only or development-only work that does not affect the bundled extension.
+
+Keep published version numbers in order so installed extensions can recognize updates. Check that the Chrome and Firefox ZIP manifests match the release tag.
 
 Run `npm version <patch|minor|major> --no-git-tag-version` in `extension/` before building and verifying. Commit the updated `package.json` and `package-lock.json` with the relevant source changes. Generated files in `extension/.output/` stay out of Git.
