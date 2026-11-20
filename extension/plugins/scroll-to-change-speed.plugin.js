@@ -7,7 +7,7 @@ const plugin = {
   id: 'scroll-to-change-speed',
   name: 'Scroll to Change Speed',
   description: 'Hold a modifier and scroll over the video to adjust playback speed.',
-  version: '1.0.0',
+  version: '1.0.1',
   authors: ['Antinity'],
   options: {
     modifier: { type: 'select', label: 'Modifier key', default: 'ctrl', choices: modifierChoices },

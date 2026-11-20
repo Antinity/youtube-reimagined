@@ -19,7 +19,8 @@ export function watchPlayerWheel(
   const label = document.createElement('div');
   const bezel = document.createElement('div');
   hud.className = 'ytp-bezel-text-wrapper';
-  hud.style.cssText = 'pointer-events:none;display:block;z-index:61';
+  // Keep YouTube's styling while letting the wheel idle timer control visibility.
+  hud.style.cssText = 'pointer-events: none; display: block; z-index: 61; animation: none; opacity: 1';
   hud.setAttribute('role', 'status');
   label.className = 'ytp-bezel-text';
   bezel.className = 'yr-wheel-hud';

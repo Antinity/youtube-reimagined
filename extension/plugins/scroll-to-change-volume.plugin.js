@@ -8,7 +8,7 @@ const plugin = {
   id: 'scroll-to-change-volume',
   name: 'Scroll to Change Volume',
   description: 'Scroll over selected areas of the video or hold a modifier to adjust volume.',
-  version: '1.0.0',
+  version: '1.0.1',
   authors: ['Antinity'],
   options: {
     activation: { type: 'select', label: 'Activate with', default: 'zones', choices: {
