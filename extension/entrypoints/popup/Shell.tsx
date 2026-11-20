@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { AppIcon, type IconName } from './Icon';
 import logo from '@/assets/logo.png';
+import { UpdateToast } from './UpdateToast';
 
 export type Page = 'plugins' | 'themes' | 'browse' | 'add' | 'settings' | 'about';
 
@@ -59,7 +60,10 @@ export function Shell({ page, panel, navigate, back, children }: {
         aria-label={item.label} title={item.label} aria-current={page === item.page ? 'page' : undefined}
         onClick={() => navigate(item.page)}><AppIcon name={item.icon} size={22} /></button>)}
     </nav>
-    <main className="workspace" ref={workspace}><div className="workspace-content" ref={content}>{children}</div></main>
+    <div className="workspace-frame">
+      <main className="workspace" ref={workspace}><div className="workspace-content" ref={content}>{children}</div></main>
+      <UpdateToast />
+    </div>
   </div>;
 }
 

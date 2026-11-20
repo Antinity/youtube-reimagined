@@ -16,6 +16,8 @@ Compatible Chromium builds also use the User Scripts permission to run JavaScrip
 
 ## External services
 
+When you open the popup, the extension may request the latest public release from GitHub. It sends no credentials or extension settings and stores the result and any dismissal on your device.
+
 Links to GitHub and Discord open those services in a browser tab. Those services handle your activity under their own privacy policies. If you post feedback or attach an export, the information you include is shared with that service and anyone who can view the post.
 
 ## Delete your data

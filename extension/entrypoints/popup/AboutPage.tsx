@@ -7,14 +7,14 @@ import shield from '@iconify-icons/mdi/shield-outline';
 import file from '@iconify-icons/mdi/file-document-outline';
 import history from '@iconify-icons/mdi/history';
 import { browser } from 'wxt/browser';
+import { latestReleaseUrl, repositoryUrl } from '@/data/updates';
 import logo from '@/assets/logo.png';
 import { AppIcon } from './Icon';
 
-const repository = 'https://github.com/Antinity/youtube-reimagined';
 const footerLinks = [
-  { label: 'Privacy policy', href: repository + '/blob/main/docs/privacy-policy.md', icon: shield },
-  { label: 'License (GPL-3.0)', href: repository + '/blob/main/LICENSE', icon: file },
-  { label: 'Changelog', href: repository + '/releases/latest', icon: history },
+  { label: 'Privacy policy', href: repositoryUrl + '/blob/main/docs/privacy-policy.md', icon: shield },
+  { label: 'License (GPL-3.0)', href: repositoryUrl + '/blob/main/LICENSE', icon: file },
+  { label: 'Changelog', href: latestReleaseUrl, icon: history },
 ];
 
 export function AboutPage() {
@@ -31,7 +31,7 @@ export function AboutPage() {
     </header>
 
     <div className="about-links">
-      <a href={repository} target="_blank" rel="noreferrer">
+      <a href={repositoryUrl} target="_blank" rel="noreferrer">
         <Icon icon={github} width={19} height={19} aria-hidden="true" /> GitHub
       </a>
       <a href="https://discord.gg/SaHkUuWc2K" target="_blank" rel="noreferrer">
@@ -48,7 +48,7 @@ export function AboutPage() {
           <Icon icon={chevron} width={18} height={18} aria-hidden="true" />
         </a>
         <a className="about-all-contributors"
-          href={repository + '/graphs/contributors'} target="_blank" rel="noreferrer">
+          href={repositoryUrl + '/graphs/contributors'} target="_blank" rel="noreferrer">
           View all contributors
           <Icon icon={chevron} width={18} height={18} aria-hidden="true" />
         </a>
@@ -60,7 +60,7 @@ export function AboutPage() {
         <Icon icon={heart} width={17} height={17} aria-hidden="true" /> Support the project
       </h2>
       <p>Star the project on GitHub or share feedback on Discord.</p>
-      <a href={repository + '#start-of-content'} target="_blank" rel="noreferrer">
+      <a href={repositoryUrl + '#start-of-content'} target="_blank" rel="noreferrer">
         <Icon icon={star} width={17} height={17} aria-hidden="true" /> Star on GitHub
       </a>
     </section>

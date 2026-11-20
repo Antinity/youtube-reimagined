@@ -90,7 +90,7 @@ h3 { font-size: 14px; margin: 0; }
   from { opacity: 0; transform: translateY(-4px) scale(.985); }
   to { opacity: 1; transform: none; }
 }
-.rail, .workspace { max-block-size: calc(100vh - 48px); }
+.rail, .workspace-frame { max-block-size: calc(100vh - 48px); }
 .app-header {
   grid-column: 1 / -1;
   display: flex;
@@ -130,10 +130,28 @@ h3 { font-size: 14px; margin: 0; }
 .icon-button:hover, .rail [aria-current='page'] { background: var(--fill); color: var(--ink); }
 .rail .icon-button { min-inline-size: 34px; min-block-size: 34px; }
 
-.workspace { display: flex; flex-direction: column; overflow: hidden auto; scrollbar-width: thin; scrollbar-color: var(--fill) transparent; }
+.workspace-frame { display: flex; flex-direction: column; min-inline-size: 0; }
+.workspace { display: flex; flex-direction: column; flex: 1; overflow: hidden auto; scrollbar-width: thin; scrollbar-color: var(--fill) transparent; }
 .workspace-content { display: flex; flex-direction: column; flex: 1 0 auto; }
 .workspace-content > .page { flex: 1; }
 .page { display: flex; flex-direction: column; gap: 12px; padding: 11px 10px; min-block-size: 100%; }
+.update-toast {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  margin: 8px 10px 10px;
+  padding: 8px 8px 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 4px 12px #0003;
+  animation: popup-enter 160ms cubic-bezier(.2,.7,.2,1) both;
+}
+.update-toast small { display: block; margin-block-start: 2px; color: var(--muted); }
+.update-toast a { padding: 6px 2px; font-weight: 600; text-underline-offset: 2px; }
+.update-toast .icon-button { color: var(--muted); }
 .cards { display: grid; gap: 12px; }
 .search {
   display: flex;
@@ -563,6 +581,6 @@ legend { padding-inline: 3px; font-weight: 600; }
 
 @media (prefers-reduced-motion: reduce) {
   :root { --motion: 0ms; }
-  .shell, .confirm { animation: none; }
+  .shell, .confirm, .update-toast { animation: none; }
   button:not(:disabled):active, .discord-link:active { scale: 1; }
 }
