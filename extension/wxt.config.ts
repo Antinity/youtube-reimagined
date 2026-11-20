@@ -1,6 +1,6 @@
 import { dirname, relative, resolve, sep } from 'node:path';
 import { defineConfig } from 'wxt';
-import { youtubeMatches } from './youtube';
+import { youtubePlayerMatches } from './youtube';
 
 // See https://wxt.dev/api/reference/wxt/interfaces/inlineconfig.html
 export default defineConfig({
@@ -35,6 +35,6 @@ export default defineConfig({
     name: 'YouTube Reimagined',
     description: 'Customize YouTube with plugins.',
     permissions: ['storage', 'scripting', ...(manifestVersion === 3 && browser !== 'firefox' && browser !== 'safari' ? ['userScripts'] : [])],
-    host_permissions: youtubeMatches,
+    host_permissions: youtubePlayerMatches,
   }),
 });

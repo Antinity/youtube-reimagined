@@ -1,4 +1,4 @@
-import { youtubeMatches } from '@/youtube';
+import { youtubePlayerMatches } from '@/youtube';
 import { startUserScripts } from '@/plugin-engine/user-scripts';
 
 export default defineBackground(() => {
@@ -8,8 +8,9 @@ export default defineBackground(() => {
     if (reason !== 'install' && reason !== 'update') return;
 
     try {
-      const tabs = await browser.tabs.query({ url: youtubeMatches });
+      const tabs = await browser.tabs.query({ url: youtubePlayerMatches });
       await Promise.allSettled(tabs.flatMap(({ id }) => id === undefined ? [] : [
+        browser.scripting.executeScript({ target: { tabId: id }, world: 'MAIN', files: ['/content-scripts/player-bridge.js'] }),
         browser.scripting.executeScript({ target: { tabId: id }, files: ['/content-scripts/content.js'] }),
       ]));
     } catch (error) {
