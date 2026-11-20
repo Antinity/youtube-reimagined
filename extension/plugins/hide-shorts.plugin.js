@@ -6,8 +6,7 @@ const plugin = {
   name: 'Hide Shorts',
   description: 'Hide Shorts shelves, video cards, and navigation links.',
   version: '1.0.0',
-  authors: ['YouTube Reimagined'],
-  contributors: ['Antinity'],
+  authors: ['Antinity'],
   options: {
     surfaces: {
       type: 'group',

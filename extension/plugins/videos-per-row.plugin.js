@@ -4,10 +4,9 @@
 const plugin = {
   id: 'videos-per-row',
   name: 'Videos Per Row',
-  description: 'Customize desktop YouTube grids, thumbnails, text, and filters.',
-  version: '1.1.0',
-  authors: ['YouTube Reimagined'],
-  contributors: ['Antinity'],
+  description: 'Customize desktop YouTube grids, Shorts, posts, thumbnails, text, and filters.',
+  version: '1.2.0',
+  authors: ['Antinity'],
   options: {
     layout: {
       type: 'group',
@@ -25,6 +24,17 @@ const plugin = {
         },
         homeWidth: { type: 'range', label: 'Home width (%)', default: 100, min: 0, max: 100 },
         hideGameShelf: { type: 'boolean', label: 'Hide game shelf', default: false },
+      },
+    },
+    shortsAndPosts: {
+      type: 'group',
+      label: 'Shorts and posts',
+      options: {
+        customizeShorts: { type: 'boolean', label: 'Customize Shorts grids and shelves', default: false },
+        shortsColumns: { type: 'number', label: 'Shorts per row', default: 6, min: 1, max: 12, integer: true },
+        customizePosts: { type: 'boolean', label: 'Customize Community post grids and shelves', default: false },
+        postColumns: { type: 'number', label: 'Posts per row', default: 3, min: 1, max: 8, integer: true },
+        hidePosts: { type: 'boolean', label: 'Hide posts on Home', default: false },
       },
     },
     typography: {
@@ -83,7 +93,7 @@ const plugin = {
         hideMembersOnly: { type: 'boolean', label: 'Hide members-only videos', default: false },
       },
     },
-    },
+  },
   activate({ settings, onCleanup }) {
     if (location.hostname !== 'www.youtube.com') return;
 
@@ -123,6 +133,17 @@ const plugin = {
         `);
         if (values.hideGameShelf) rules.push('ytd-browse[page-subtype="home"] ytd-rich-section-renderer:has([is-mini-game-card-shelf]) ' + hide);
       }
+
+      if (values.customizeShorts) rules.push(`
+        ${gridLayout(shortsGrids, Number(values.shortsColumns), Number(values.horizontalGap), Number(values.verticalGap))}
+        ytd-rich-grid-renderer[is-shorts-grid] > #contents > ytd-rich-grid-row,
+        ytd-rich-grid-renderer[is-shorts-grid] ytd-rich-grid-row > #contents { display: contents !important; }
+        ytd-rich-grid-renderer[is-shorts-grid] ytd-rich-item-renderer { width: auto !important; margin: 0 !important; }
+      `);
+      if (values.customizePosts) rules.push(gridLayout(postGrids, Number(values.postColumns), Number(values.horizontalGap), Number(values.verticalGap)));
+      if (values.hidePosts) rules.push(`
+        ytd-browse[page-subtype="home"] :is(ytd-rich-section-renderer, ytd-rich-item-renderer):has(${postCards}) ${hide}
+      `);
 
       if (values.enableTypography) rules.push(`
         :is(#video-title.ytd-rich-grid-media, #video-title.ytd-video-renderer, #video-title.ytd-radio-renderer,
@@ -257,6 +278,13 @@ const plugin = {
 
 const shortsShelf = 'grid-shelf-view-model:has(.shortsLockupViewModelHost, a[href^="/shorts/"])';
 const shortsCards = ':is(ytd-rich-item-renderer, ytd-video-renderer, ytd-grid-video-renderer, ytd-compact-video-renderer, yt-lockup-view-model):has(a[href^="/shorts/"], [overlay-style="SHORTS"])';
+const postCards = ':is(ytd-backstage-post-thread-renderer, ytd-backstage-post-renderer, ytd-post-renderer, yt-post-view-model)';
+const shortsGrids = `:is(ytd-rich-grid-renderer[is-shorts-grid] > #contents, ytd-rich-shelf-renderer[is-shorts] #contents,
+  ytd-reel-shelf-renderer #items, ${shortsShelf} .ytGridShelfViewModelGridShelfItems,
+  ytd-browse[page-subtype="channels"] #contents.ytd-rich-grid-renderer:has(> ytd-rich-item-renderer :is(ytm-shorts-lockup-view-model, ytm-shorts-lockup-view-model-v2)))`;
+const postGrids = `:is(ytd-rich-shelf-renderer #contents:has(> ${postCards}, > ytd-rich-item-renderer ${postCards}),
+  grid-shelf-view-model .ytGridShelfViewModelGridShelfItems:has(${postCards}),
+  ytd-item-section-renderer > #contents:has(> ${postCards}))`;
 const entry = ':is(ytd-rich-item-renderer, ytd-grid-video-renderer, ytd-video-renderer, ytd-compact-video-renderer, yt-lockup-view-model)';
 const progress = 'yt-thumbnail-overlay-progress-bar-view-model';
 const watched = `${entry}:has(${progress}):not(${entry} ${entry})`;
@@ -266,5 +294,23 @@ const searchPage = 'ytd-search';
 const watchPage = 'ytd-watch-flexy';
 const watchLockup = `${watchPage} #related :is(.ytLockupViewModelHorizontal, .yt-lockup-view-model--horizontal)`;
 const hide = '{ display: none !important; }';
+
+/**
+ * @param {string} selectors
+ * @param {number} columns
+ * @param {number} horizontalGap
+ * @param {number} verticalGap
+ */
+function gridLayout(selectors, columns, horizontalGap, verticalGap) {
+  return `
+    ${selectors} {
+      display: grid !important;
+      grid-template-columns: repeat(${columns}, minmax(0, 1fr)) !important;
+      gap: ${verticalGap}px ${horizontalGap}px !important;
+    }
+    ${selectors} > * { min-width: 0 !important; width: auto !important; max-width: none !important; margin: 0 !important; }
+    ${selectors} :is(ytd-continuation-item-renderer, yt-continuation-item-renderer) { grid-column: 1 / -1; }
+  `;
+}
 
 export default plugin;
